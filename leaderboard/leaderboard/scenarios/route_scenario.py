@@ -189,6 +189,7 @@ class RouteScenario(BasicScenario):
 		self.route = None
 		self.sampled_scenarios_definitions = None
 
+		# config.agent set global plan
 		self._update_route(world, config, debug_mode>0)
 
 		ego_vehicle = self._update_ego_vehicle()
@@ -231,6 +232,7 @@ class RouteScenario(BasicScenario):
 		self.route = route
 		CarlaDataProvider.set_ego_vehicle_route(convert_transform_to_location(self.route))
 
+		# used roach_ap_agent ----> to set plan 
 		config.agent.set_global_plan(gps_route, self.route, wp_route)
 
 		# Sample the scenarios to be used for this route instance.

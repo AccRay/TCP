@@ -94,6 +94,7 @@ class LeaderboardEvaluator(object):
         Setup CARLA client and world
         Setup ScenarioManager
         """
+
         self.statistics_manager = statistics_manager
         self.sensors = None
         self.sensor_icons = []
@@ -118,12 +119,22 @@ class LeaderboardEvaluator(object):
         #         raise ImportError("CARLA version 0.9.10.1 or newer required. CARLA version found: {}".format(dist))
 
         # Load agent
+        # data_collection.sh ----->   team_code/roach_ap_agent.py
         module_name = os.path.basename(args.agent).split('.')[0]
+
+        # print(module_name)  # roach_ap_agent
+        # exit()
+
+
         sys.path.insert(0, os.path.dirname(args.agent))
         self.module_agent = importlib.import_module(module_name)
 
         # Create the ScenarioManager
         self.manager = ScenarioManager(args.timeout, args.debug > 1)
+
+        # print("*********************************")
+        # print(self.manager)
+        # print("*********************************")
 
         # Time control for summary purposes
         self._start_time = GameTime.get_time()
@@ -302,15 +313,29 @@ class LeaderboardEvaluator(object):
         # Set up the user's agent, and the timer to avoid freezing the simulation
         try:
             self._agent_watchdog.start()
+            # get obj's xxx
+            # agent_class_name -----> ROACHAgent
             agent_class_name = getattr(self.module_agent, 'get_entry_point')()
+            # TEAM_CONFIG=roach/config/config_agent.yaml
             self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
             config.agent = self.agent_instance
+            print('agent.config:')
+            # data_collection --> <roach_ap_agent.ROACHAgent object at 0x7fb9abac1b90>
+            # run_evaluation ---> tcp_agent
+            print(config.agent)
+            print('llll')
+
+
 
             # Check and store the sensors
             if not self.sensors:
+
+                # leaderboard/teamcode/roach_ap_agent.sensors()
+                # use to define 
                 self.sensors = self.agent_instance.sensors()
                 track = self.agent_instance.track
 
+                # data_Collection ---> args.track = SENSORS
                 AgentWrapper.validate_sensor_configuration(self.sensors, track, args.track)
 
                 self.sensor_icons = [sensors_to_icons[sensor['type']] for sensor in self.sensors]
@@ -349,6 +374,8 @@ class LeaderboardEvaluator(object):
         try:
             self._load_and_wait_for_world(args, config.town, config.ego_vehicles)
             self._prepare_ego_vehicles(config.ego_vehicles, False)
+
+            # config.agent  --> roach_ap_agent
             scenario = RouteScenario(world=self.world, config=config, debug_mode=args.debug)
             self.statistics_manager.set_scenario(scenario.scenario)
 
@@ -363,6 +390,9 @@ class LeaderboardEvaluator(object):
             # Load scenario and run it
             if args.record:
                 self.client.start_recorder("{}/{}_rep{}.log".format(args.record, config.name, config.repetition_index))
+            
+            # agent_instance --> roach_ap_agent
+            # leaderboard's built-in function
             self.manager.load_scenario(scenario, self.agent_instance, config.repetition_index)
 
         except Exception as e:
@@ -386,6 +416,7 @@ class LeaderboardEvaluator(object):
 
         # Run the scenario
         # try:
+        # if timestamp ---> _tick_scenario
         self.manager.run_scenario()
 
         # except AgentError as e:
@@ -436,7 +467,8 @@ class LeaderboardEvaluator(object):
         # self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
 
         route_indexer = RouteIndexer(args.routes, args.scenarios, args.repetitions)
-
+        
+        # wether to resume the project
         if args.resume:
             route_indexer.resume(args.checkpoint)
             self.statistics_manager.resume(args.checkpoint)
@@ -448,7 +480,7 @@ class LeaderboardEvaluator(object):
             # setup
             config = route_indexer.next()
 
-            # run
+            # run agent
             self._load_and_run_scenario(args, config)
 
             for obj in gc.get_objects():
@@ -473,7 +505,7 @@ def main():
     parser = argparse.ArgumentParser(description=description, formatter_class=RawTextHelpFormatter)
     parser.add_argument('--host', default='localhost',
                         help='IP of the host server (default: localhost)')
-    parser.add_argument('--port', default='62000', help='TCP port to listen to (default: 2000)')
+    parser.add_argument('--port', default='2000', help='TCP port to listen to (default: 2000)')
     parser.add_argument('--trafficManagerPort', default='8000',
                         help='Port to use for the TrafficManager (default: 8000)')
     parser.add_argument('--trafficManagerSeed', default='0',
@@ -481,10 +513,14 @@ def main():
     parser.add_argument('--debug', type=int, help='Run with debug output', default=0)
     parser.add_argument('--record', type=str, default='',
                         help='Use CARLA recording feature to create a recording of the scenario')
-    parser.add_argument('--timeout', default="200.0",
+    # parser.add_argument('--timeout', default="200.0",
+    #                     help='Set the CARLA client timeout value in seconds')    
+    parser.add_argument('--timeout', default="20.0",
                         help='Set the CARLA client timeout value in seconds')
 
     # simulation setup
+    # data_collection --> leaderboard/data/TCP_training_routes/routes_town01.xml
+    # run_evaluation ---> leaderboard/data/evaluation_routes/routes_lav_valid.xml
     parser.add_argument('--routes',
                         help='Name of the route to be executed. Point to the route_xml_file to be executed.',
                         required=True)
@@ -492,28 +528,47 @@ def main():
                         type=str, default='none',
                         help='Name of the weahter to be executed',
                         )
+    
+    # export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
     parser.add_argument('--scenarios',
                         help='Name of the scenario annotation file to be mixed with the route.',
                         required=True)
+    # data collection 1
+    # run evaluation  3
     parser.add_argument('--repetitions',
                         type=int,
                         default=1,
                         help='Number of repetitions per route.')
 
     # agent-related options
+    # need to configuate it yourself?
+    #########################
     parser.add_argument("-a", "--agent", type=str, help="Path to Agent's py file to evaluate", required=True)
     parser.add_argument("--agent-config", type=str, help="Path to Agent's configuration file", default="")
+    # data collection ---> TEAM_AGENT=team_code/roach_ap_agent.py
+    # data collection ---> TEAM_CONFIG=roach/config/config_agent.yaml
+
+    # run evaluation  ---> TEAM_AGENT=team_code/tcp_agent.py
+    # run evaluation  ---> PATH_TO_MODEL_CKPT  ?
+
 
     parser.add_argument("--track", type=str, default='SENSORS', help="Participation track: SENSORS, MAP")
     parser.add_argument('--resume', type=bool, default=False, help='Resume execution from last checkpoint?')
+
+    # data_collection -----> CHECKPOINT_ENDPOINT=data_collect_town01_results.json 
     parser.add_argument("--checkpoint", type=str,
                         default='./simulation_results.json',
                         help="Path to checkpoint used for saving statistics and resuming")
 
     arguments = parser.parse_args()
+    ################################
+    # carla leaderboard method
+
     print("init statistics_manager")
     statistics_manager = StatisticsManager()
+    ################################
 
+    
     try:
         print("begin")
         leaderboard_evaluator = LeaderboardEvaluator(arguments, statistics_manager)

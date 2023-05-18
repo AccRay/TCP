@@ -40,6 +40,7 @@ class TCP(nn.Module):
 
 		self.perception = resnet34(pretrained=True)
 
+		# using sequential to expressing a neutral network
 		self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, 128),
 							nn.ReLU(inplace=True),
@@ -134,7 +135,7 @@ class TCP(nn.Module):
 				nn.Linear(512, 256),
 			)
 		
-
+	#nn caculate 
 	def forward(self, img, state, target_point):
 		feature_emb, cnn_feature = self.perception(img)
 		outputs = {}
@@ -332,6 +333,7 @@ class TCP(nn.Module):
 		acc, steer = action[:, 0], action[:, 1]
 		if acc >= 0.0:
 			throttle = acc
+			# generize  00000
 			brake = torch.zeros_like(acc)
 		else:
 			throttle = torch.zeros_like(acc)

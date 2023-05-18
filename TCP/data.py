@@ -10,6 +10,11 @@ from TCP.augment import hard as augmenter
 class CARLA_Data(Dataset):
 
 	def __init__(self, root, data_folders, img_aug = False):
+		"""
+			root: root_dir_all
+			data_folders: 
+			img_aug:
+		"""
 		self.root = root
 		self.img_aug = img_aug
 		self._batch_read_number = 0
@@ -46,6 +51,7 @@ class CARLA_Data(Dataset):
 		self.only_ap_brake = []
 
 		for sub_root in data_folders:
+			# need to check packed_data.npy
 			data = np.load(os.path.join(sub_root, "packed_data.npy"), allow_pickle=True).item()
 
 			self.x_command += data['x_target']
@@ -74,6 +80,7 @@ class CARLA_Data(Dataset):
 			self.action_mu += data['action_mu']
 			self.action_sigma += data['action_sigma']
 			self.only_ap_brake += data['only_ap_brake']
+		# It allows you to create a sequence of image transformations that can be applied
 		self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
 
 	def __len__(self):
@@ -85,7 +92,9 @@ class CARLA_Data(Dataset):
 		data = dict()
 		data['front_img'] = self.front_img[index]
 
+		# whether to use image augment()
 		if self.img_aug:
+			# Apply the converted operation to the image(defined at T.Compose)
 			data['front_img'] = self._im_transform(augmenter(self._batch_read_number).augment_image(np.array(
 					Image.open(self.root+self.front_img[index][0]))))
 		else:
@@ -102,7 +111,7 @@ class CARLA_Data(Dataset):
 
 		waypoints = []
 		for i in range(4):
-			R = np.array([
+			R = np.array([      
 			[np.cos(np.pi/2+ego_theta), -np.sin(np.pi/2+ego_theta)],
 			[np.sin(np.pi/2+ego_theta),  np.cos(np.pi/2+ego_theta)]
 			])

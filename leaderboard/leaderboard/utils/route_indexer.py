@@ -12,6 +12,10 @@ from leaderboard.utils.checkpoint_tools import fetch_dict, create_default_json_m
 
 class RouteIndexer():
     def __init__(self, routes_file, scenarios_file, repetitions):
+        #
+        #ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+        #SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
+        #
         self._routes_file = routes_file
         self._scenarios_file = scenarios_file
         self._repetitions = repetitions
