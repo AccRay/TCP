@@ -185,6 +185,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 	def set_global_plan(self, global_plan_gps, global_plan_world_coord, wp_route):
 		"""
 		Set the plan (route) for the agent
+			used at leaderboard--> route scenario
 		"""
 		self._global_route = wp_route
 		ds_ids = downsample_route(global_plan_world_coord, 50)
@@ -318,7 +319,11 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 
 		if self.step % 2 != 0:
 			return self.last_control
+		
+		#  rendered --> image?
 		tick_data, policy_input, rendered, target_gps, target_command = self.tick(input_data, timestamp)
+
+
 
 		gps = self._get_position(tick_data)
 
