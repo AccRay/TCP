@@ -3,6 +3,9 @@
 # COiLTRAiNE itself is under MIT License                                                              #
 #######################################################################################################
 
+# used for image 
+# could we use this file to upload the waypoints
+
 
 import imgaug as ia
 from imgaug import augmenters as iaa
