@@ -27,6 +27,9 @@ from agents.navigation.local_planner import RoadOption
 from team_code.planner import RoutePlanner
 
 
+import traceback
+
+
 SAVE_PATH = os.environ.get('SAVE_PATH', None)
 
 def get_entry_point():
@@ -67,6 +70,19 @@ def get_collision(p1, v1, p2, v2):
 
 
 class ROACHAgent(autonomous_agent.AutonomousAgent):
+
+	"""
+    Autonomous agent base class. All user agents have to be derived from this class
+    """
+	def __init__(self, path_to_conf_file):
+		super().__init__(path_to_conf_file)
+
+	#def __call__() ---> self.run_step()
+	# follows the rules fo inheritance and overriding
+	# it will access its own corresponding member varible, it will access its own member variable
+	
+
+	# path_to_conf_file --> roach/config/config_agent.yaml
 	def setup(self, path_to_conf_file, ckpt="roach/log/ckpt_11833344.pth"):
 		self._render_dict = None
 		self.supervision_dict = None
@@ -74,6 +90,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		cfg = OmegaConf.load(path_to_conf_file)
 		cfg = OmegaConf.to_container(cfg)
 		self.cfg = cfg
+		# config_agent.ymal
 		self._obs_configs = cfg['obs_configs']
 		self._train_cfg = cfg['training']
 		self._policy_class = load_entry_point(cfg['policy']['entry_point'])
@@ -90,6 +107,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		self.config_path = path_to_conf_file
 		self.step = -1
 		self.wall_start = time.time()
+		# ?
 		self.initialized = False
 
 		self._3d_bb_distance = 50
@@ -301,8 +319,11 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 			im = cv2.putText(im, txt, (w, (i+2)*12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
 		return im
 
+
 	@torch.no_grad()
+	# redefine autonomous_agent's run_step()
 	def run_step(self, input_data, timestamp):
+		# traceback.print_stack()
 		if not self.initialized:
 			self._init()
 

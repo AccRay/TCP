@@ -134,6 +134,7 @@ class ScenarioManager(object):
                 if snapshot:
                     timestamp = snapshot.timestamp
             if timestamp:
+                # traceback_stack
                 self._tick_scenario(timestamp)
 
     def _tick_scenario(self, timestamp):
@@ -150,6 +151,8 @@ class ScenarioManager(object):
             CarlaDataProvider.on_carla_tick()
 
             try:
+                # ? 
+                # self._agent = AggentWrapper(agent)
                 ego_action = self._agent()
 
             # Special exception inside the agent that isn't caused by the agent

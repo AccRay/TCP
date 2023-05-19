@@ -283,6 +283,8 @@ class LeaderboardEvaluator(object):
         Computes and saved the simulation statistics
         """
         # register statistics
+        # config.agent? 
+        # statistics_manager = StatisticsManager()
         current_stats_record = self.statistics_manager.compute_route_statistics(
             config,
             self.manager.scenario_duration_system,
@@ -316,8 +318,11 @@ class LeaderboardEvaluator(object):
             # get obj's xxx
             # agent_class_name -----> ROACHAgent
             agent_class_name = getattr(self.module_agent, 'get_entry_point')()
+
             # TEAM_CONFIG=roach/config/config_agent.yaml
+            # Initialization ROACHAgent
             self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
+
             config.agent = self.agent_instance
             print('agent.config:')
             # data_collection --> <roach_ap_agent.ROACHAgent object at 0x7fb9abac1b90>
@@ -331,9 +336,11 @@ class LeaderboardEvaluator(object):
             if not self.sensors:
 
                 # leaderboard/teamcode/roach_ap_agent.sensors()
+                # rgb/imu/gnss/speedmeter
                 # use to define 
                 self.sensors = self.agent_instance.sensors()
                 track = self.agent_instance.track
+                # print('track:') print(track) # Track.SENSORS
 
                 # data_Collection ---> args.track = SENSORS
                 AgentWrapper.validate_sensor_configuration(self.sensors, track, args.track)
@@ -393,6 +400,7 @@ class LeaderboardEvaluator(object):
             
             # agent_instance --> roach_ap_agent
             # leaderboard's built-in function
+            # ffff get         self._agent = AgentWrapper(agent)  
             self.manager.load_scenario(scenario, self.agent_instance, config.repetition_index)
 
         except Exception as e:
@@ -416,7 +424,11 @@ class LeaderboardEvaluator(object):
 
         # Run the scenario
         # try:
-        # if timestamp ---> _tick_scenario
+        
+        # load_scenario first
+        # if timestamp ---> _tick_scenario(timestamp)
+        # _tick_scenario(timestamp) ---> ego_action = self._agent()
+        # autoagents/agent_wrapper __call ---> 
         self.manager.run_scenario()
 
         # except AgentError as e:
@@ -439,6 +451,7 @@ class LeaderboardEvaluator(object):
         try:
             print("\033[1m> Stopping the route\033[0m")
             self.manager.stop_scenario()
+            # config.agent? 
             self._register_statistics(config, args.checkpoint, entry_status, crash_message)
 
             if args.record:

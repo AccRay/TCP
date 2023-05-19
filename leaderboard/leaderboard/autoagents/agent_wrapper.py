@@ -79,6 +79,8 @@ class AgentWrapper(object):
         """
         Pass the call directly to the agent
         """
+
+        # roach_ap_agent --> autonomous_agent first
         return self._agent()
 
     def setup_sensors(self, vehicle, debug_mode=False):
