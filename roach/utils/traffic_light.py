@@ -179,8 +179,13 @@ class TrafficLightHandler:
 
     @staticmethod
     def get_stopline_vtx(veh_loc, color, dist_threshold=50.0):
+        """
+        This method retrieves stopline vertices associated with traffic lights of a specific color
+        It takes the vehicle location, color index, and a distance threshold as inputs.
+        It checks for nearby traffic lights of the specified color and returns the associated junction paths
+        """
         if color == 0:
-            tl_state = carla.TrafficLightState.Green
+            tl_state = carla.TrafficLightState.Green #Red Yellow Green Off Unknown
         elif color == 1:
             tl_state = carla.TrafficLightState.Yellow
         elif color == 2:

@@ -7,7 +7,25 @@ from pathlib import Path
 import h5py
 
 from roach.utils.traffic_light import TrafficLightHandler
+'''
+这段代码是一个用于生成观测数据的ObsManager类。它使用Carla模拟器和OpenAI Gym进行交互。让我解释一下代码的主要部分。
 
+首先我们导入所需的库:包括numpy、carla、gym、cv2、deque和Path等。这些库用于处理图像、Carla模拟器、路径操作和队列等。
+
+ObsManager类的初始化函数接收一个obs_configs参数和一个criteria_stop参数。obs_configs是一个包含观测配置信息的字典,包括宽度、像素和米的转换关系等。criteria_stop用于处理停止标志的类。
+
+在attach_ego_vehicle函数中,我们将Carla模拟器中的自动驾驶车辆与ObsManager实例关联起来。通过这个函数,我们可以获取Carla世界的地图信息和车辆的位置、旋转等信息。
+
+get_observation函数是获取观测数据的主要函数。它根据车辆的位置和旋转计算出各种掩码和图像。掩码用于表示道路、车道、行人、交通信号灯等的位置,图像用于渲染可视化结果。
+
+在函数中，首先根据车辆位置计算出各个物体的位置和范围。然后，根据车辆的历史信息和当前信息，生成车辆、行人、交通信号灯等的掩码。掩码是二值图像，表示了这些物体在图像中的位置。
+
+接下来，根据地图信息和路径规划，生成道路、车道和行驶路线的掩码。将这些掩码和物体的掩码合并到一起，并根据颜色编码将它们渲染到图像上。
+
+最后，将图像和掩码作为观测数据返回。图像用于可视化观测结果，掩码用于进一步的处理和分析。
+
+以上就是代码的主要逻辑和功能。ObsManager类负责处理观测数据的生成,以支持Carla模拟器和OpenAI Gym的交互
+'''
 
 COLOR_BLACK = (0, 0, 0)
 COLOR_RED = (255, 0, 0)
@@ -53,7 +71,7 @@ class ObsManager():
 
 		self._map_dir = Path(__file__).resolve().parent / 'maps'
 
-		self._criteria_stop =criteria_stop
+		self._criteria_stop = criteria_stop
 
 		super(ObsManager, self).__init__()
 
@@ -62,7 +80,17 @@ class ObsManager():
 		self._world = self._parent_actor.get_world()
 
 		maps_h5_path = self._map_dir / (self._world.get_map().name + '.h5')
+		# 
+
 		with h5py.File(maps_h5_path, 'r', libver='latest', swmr=True) as hf:
+			# print("h5_map")
+			# print(hf['road'])
+			# print(hf['lane_marking_all'])
+			# print(hf['lane_marking_white_broken'])
+			# exit()
+			# we can find the map at roach/obs_manager/birdview/maps/Townxx.h5
+			# the xxx.h5 files are generated at carla-roach/carla-gym/utils/birdview_map.py
+			
 			self._road = np.array(hf['road'], dtype=np.uint8)
 			self._lane_marking_all = np.array(hf['lane_marking_all'], dtype=np.uint8)
 			self._lane_marking_white_broken = np.array(hf['lane_marking_white_broken'], dtype=np.uint8)
@@ -89,6 +117,7 @@ class ObsManager():
 		ev_transform = self._parent_actor.get_transform()
 		ev_loc = ev_transform.location
 		ev_rot = ev_transform.rotation
+		# car's a b c d
 		ev_bbox = self._parent_actor.bounding_box
 
 		def is_within_distance(w):
@@ -98,9 +127,15 @@ class ObsManager():
 			c_ev = abs(ev_loc.x - w.location.x) < 1.0 and abs(ev_loc.y - w.location.y) < 1.0
 			return c_distance and (not c_ev)
 			
-
+		# return a list of bounding boxes with location and rotation in world space.
+		# the method returns all the bounding boxes in the level by default
+		# but the query can be filtered by semantic tags with the argument--> actor_type
+		# return  carla.boundingbox
+		#carla.boundingBox (extent(vector3D)/location/rotation)
 		vehicle_bbox_list = self._world.get_level_bbs(carla.CityObjectLabel.Vehicles)
+
 		walker_bbox_list = self._world.get_level_bbs(carla.CityObjectLabel.Pedestrians)
+
 		if self._scale_bbox:
 			vehicles = self._get_surrounding_actors(vehicle_bbox_list, is_within_distance, 1.0)
 			walkers = self._get_surrounding_actors(walker_bbox_list, is_within_distance, 2.0)
@@ -108,13 +143,26 @@ class ObsManager():
 			vehicles = self._get_surrounding_actors(vehicle_bbox_list, is_within_distance)
 			walkers = self._get_surrounding_actors(walker_bbox_list, is_within_distance)
 
+		# ev_loc --> ego_vehicle_location
 		tl_green = TrafficLightHandler.get_stopline_vtx(ev_loc, 0)
 		tl_yellow = TrafficLightHandler.get_stopline_vtx(ev_loc, 1)
 		tl_red = TrafficLightHandler.get_stopline_vtx(ev_loc, 2)
+		# print("tl_red")
+		# print(tl_red)
+		# [[<carla.libcarla.Vector3D object at 0x7f43dbd63c90>, <carla.libcarla.Vector3D object at 0x7f43dbd63cf0>], 
+		# [<carla.libcarla.Vector3D object at 0x7f43dbd64690>, <carla.libcarla.Vector3D object at 0x7f43dbd646f0>], 
+		# [<carla.libcarla.Vector3D object at 0x7f43dbd5c4b0>, <carla.libcarla.Vector3D object at 0x7f43dbd5c510>], 
+		# [<carla.libcarla.Vector3D object at 0x7f43db173570>, <carla.libcarla.Vector3D object at 0x7f43db173510>], 
+		# [<carla.libcarla.Vector3D object at 0x7f43db176870>, <carla.libcarla.Vector3D object at 0x7f43db1768d0>], 
+		# [<carla.libcarla.Vector3D object at 0x7f43db175090>, <carla.libcarla.Vector3D object at 0x7f43db1750f0>]]
+
 		stops = self._get_stops(self._criteria_stop)
 
 		self._history_queue.append((vehicles, walkers, tl_green, tl_yellow, tl_red, stops))
 
+		# convert images from a vehicles's perspective into a top view (why? how?)
+		# for further processing or analysis
+		# do we need that??  (pixels_per_meter)
 		M_warp = self._get_warp_transform(ev_loc, ev_rot)
 
 		# objects with history
@@ -245,12 +293,18 @@ class ObsManager():
 			if is_within_distance:
 				bb_loc = carla.Location()
 				bb_ext = carla.Vector3D(bbox.extent)
+				# Vector3D(x=2.601919, y=1.307286, z=1.233722)
+				# print(bb_ext)
+				# use for describe the location of the vehicle/president/road...
 				if scale is not None:
 					bb_ext = bb_ext * scale
 					bb_ext.x = max(bb_ext.x, 0.8)
 					bb_ext.y = max(bb_ext.y, 0.8)
 
 				actors.append((carla.Transform(bbox.location, bbox.rotation), bb_loc, bb_ext))
+		# [(<carla.libcarla.Transform object at 0x7fe9061d90b0>, 
+		# <carla.libcarla.Location object at 0x7fe9061dacb0>, 
+		# <carla.libcarla.Vector3D object at 0x7fe9045ae3f0>)......
 		return actors
 
 	def _get_warp_transform(self, ev_loc, ev_rot):

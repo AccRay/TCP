@@ -133,8 +133,9 @@ class StatisticsManager(object):
 
         route_record.meta['duration_system'] = duration_time_system
         route_record.meta['duration_game'] = duration_time_game
+        # config.agent?
         route_record.meta['route_length'] = compute_route_length(config)
-
+        # config.agent --> roach_ap_agent
         route_record.meta['total_steps'] = config.agent.step
 
         if self._master_scenario:
