@@ -25,20 +25,36 @@ class RouteIndexer():
         self._index = 0
 
         # retrieve routes
+        # new_config = RouteScenarioConfiguration()
+        # from srunner.scenarioconfigs.route_scenario_configuration import RouteScenarioConfiguration
+        # from srunner.scenarioconfigs.scenario_configuration import ScenarioConfiguration
+
         route_configurations = RouteParser.parse_routes_file(self._routes_file, self._scenarios_file, False)
 
         self.n_routes = len(route_configurations)
-        self.total = self.n_routes*self._repetitions
-
+        self.total = self.n_routes * self._repetitions
+        # print("nums of config:")
+        # print(self.n_routes)
+        # 300
         for i, config in enumerate(route_configurations):
+            # print("config")
+            # print(config)
+            # <srunner.scenarioconfigs.route_scenario_configuration.RouteScenarioConfiguration object>
             for repetition in range(repetitions):
                 config.index = i * self._repetitions + repetition
                 config.repetition_index = repetition
                 self._configs_dict['{}.{}'.format(config.name, repetition)] = copy.copy(config)
-
+                # print(config.name) # RouteScenario_295
+                # print(config.trajectory) # [<carla.libcarla.Location object at 0x7f7769281f70>, <carla.libcarla.Location object at 0x7f7769281fb0>]
+                # print(config.scenario_file) # leaderboard/data/scenarios/all_towns_traffic_scenarios.json
+        # print(len(list(self._configs_dict.items())))
+        # 300
         self._configs_list = list(self._configs_dict.items())
 
     def peek(self):
+        """
+        there is no new waypoints
+        """
         return not (self._index >= len(self._configs_list))
 
     def next(self):

@@ -223,7 +223,7 @@ class RouteScenario(BasicScenario):
 		world_annotations = RouteParser.parse_annotations_file(config.scenario_file)
 
 		# prepare route's trajectory (interpolate and add the GPS route)
-		# gps_route, route = interpolate_trajectory(world, config.trajectory)
+		# config.trajectory include a start point and an end point(carla.Location)
 		gps_route, route, wp_route = interpolate_trajectory(world, config.trajectory)
 
 		potential_scenarios_definitions, _ = RouteParser.scan_route_for_scenarios(
@@ -232,8 +232,17 @@ class RouteScenario(BasicScenario):
 		self.route = route
 		CarlaDataProvider.set_ego_vehicle_route(convert_transform_to_location(self.route))
 
+
+		# print(gps_route)
+		# print(self.route)
+		print(len(wp_route)) #204
+
 		# used roach_ap_agent ----> to set plan 
 		config.agent.set_global_plan(gps_route, self.route, wp_route)
+
+
+
+
 
 		# Sample the scenarios to be used for this route instance.
 		self.sampled_scenarios_definitions = self._scenario_sampling(potential_scenarios_definitions)
@@ -250,6 +259,7 @@ class RouteScenario(BasicScenario):
 		Set/Update the start position of the ego_vehicle
 		"""
 		# move ego to correct position
+		# get the vehicle (ego+actor)
 		elevate_transform = self.route[0][0]
 		elevate_transform.location.z += 0.5
 

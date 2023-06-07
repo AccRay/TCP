@@ -84,13 +84,9 @@ class ObsManager():
 
 		with h5py.File(maps_h5_path, 'r', libver='latest', swmr=True) as hf:
 			# print("h5_map")
-			# print(hf['road'])
-			# print(hf['lane_marking_all'])
-			# print(hf['lane_marking_white_broken'])
-			# exit()
 			# we can find the map at roach/obs_manager/birdview/maps/Townxx.h5
 			# the xxx.h5 files are generated at carla-roach/carla-gym/utils/birdview_map.py
-			
+
 			self._road = np.array(hf['road'], dtype=np.uint8)
 			self._lane_marking_all = np.array(hf['lane_marking_all'], dtype=np.uint8)
 			self._lane_marking_white_broken = np.array(hf['lane_marking_white_broken'], dtype=np.uint8)
@@ -163,11 +159,48 @@ class ObsManager():
 		# convert images from a vehicles's perspective into a top view (why? how?)
 		# for further processing or analysis
 		# do we need that??  (pixels_per_meter)
+		# M_warp is a 2*3 matrix. By multiplying this affine matrix, points in the world coordinate
+		# system canbe transformed into points in the image.
 		M_warp = self._get_warp_transform(ev_loc, ev_rot)
 
 		# objects with history
 		vehicle_masks, walker_masks, tl_green_masks, tl_yellow_masks, tl_red_masks, stop_masks \
 			= self._get_history_masks(M_warp)
+		
+		# we need to check what is the Town01.h5
+		# print("self._road")
+		# print(self._road)
+		# print("self._lane_marking_all")
+		# print(self._lane_marking_all)
+		# self._road
+		# [[0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]
+		# ...
+		# [0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]]
+		# self._lane_marking_all
+		# [[0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]
+		# ...
+		# [0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]
+		# [0 0 0 ... 0 0 0]]
+
+		# cv.getAffineTransform: 
+		# 这个函数用于计算仿射变换的矩阵。给定源点集和目标点集，它会计算出一个2x3的仿射矩阵，表示从源点集到目标点集的仿射变换关系。
+		# 该函数主要用于计算仿射变换矩阵，但不进行实际的图像变换操作。
+		# 
+		# cv.warpAffine: 
+		# 这个函数用于应用仿射变换到图像上。给定一个输入图像和一个仿射变换矩阵，它会对输入图像进行变换，并返回变换后的图像。
+		# 具体而言，它会根据仿射矩阵的定义，将输入图像的像素位置映射到变换后的图像中的新位置。这个函数实际上执行了图像的几何变换操作。
+
+		# cv.getAffineTransform用于计算仿射变换的矩阵，而cv.warpAffine用于将计算得到的仿射变换矩阵应用到图像上，实现图像的几何变换。
+
+		# cv.polylines函数在输入图像上绘制指定的多边形轮廓。
+		# 它可以用于可视化对象的轮廓、绘制边界框、绘制路径等应用场景。通过指定不同的顶点坐标和参数，可以绘制不同形状和样式的轮廓。
 
 		# road_mask, lane_mask
 		road_mask = cv.warpAffine(self._road, M_warp, (self._width, self._width)).astype(np.bool)
@@ -319,6 +352,7 @@ class ObsManager():
 		top_right = ev_loc_in_px + (self._width-self._pixels_ev_to_bottom) * forward_vec + (0.5*self._width) * right_vec
 
 		src_pts = np.stack((bottom_left, top_left, top_right), axis=0).astype(np.float32)
+
 		dst_pts = np.array([[0, self._width-1],
 							[0, 0],
 							[self._width-1, 0]], dtype=np.float32)

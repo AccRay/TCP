@@ -29,7 +29,11 @@ export DATA_COLLECTION=True
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town02.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town03.xml
 export ROUTES=leaderboard/data/TCP_training_routes/routes_town04.xml
-export TEAM_AGENT=team_code/roach_ap_agent.py
+
+# export TEAM_AGENT=team_code/roach_ap_agent.py
+export TEAM_AGENT=team_code/roach_ap_noimg_agent.py
+
+
 export TEAM_CONFIG=roach/config/config_agent.yaml
 # export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
 # export CHECKPOINT_ENDPOINT=data_collect_town02_results.json
