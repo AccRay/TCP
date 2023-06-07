@@ -138,6 +138,7 @@ class StatisticsManager(object):
         # config.agent --> roach_ap_agent
         route_record.meta['total_steps'] = config.agent.step
 
+
         if self._master_scenario:
             if self._master_scenario.timeout_node.timeout:
                 route_record.infractions['route_timeout'].append('Route timeout.')

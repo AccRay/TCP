@@ -77,7 +77,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 	def __init__(self, path_to_conf_file):
 		super().__init__(path_to_conf_file)
 
-	#def __call__() ---> self.run_step()
+	# def __call__() ---> self.run_step()
 	# follows the rules fo inheritance and overriding
 	# it will access its own corresponding member varible, it will access its own member variable
 	
@@ -270,9 +270,11 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		self._truncate_global_route_till_local_target()
 
         # birdview_obss_manager ---> roach.obs_manager.birdview.chauffeurnet  import ObsManager
-		# return obs_dict = {'rendered': image, 'masks': masks}
+
+		# return obs_dict = {'rendered': image, 'masks': masks} ---> rendered(test_save_path)
 		birdview_obs = self.birdview_obs_manager.get_observation(self._global_route)
 		
+
         # carladataprovider.get_ego().get_control()  ---> 
 		# the client returns the control applied in the last tick
 		# Return carla.VehicleControl
@@ -348,8 +350,11 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		# dict_keys(['rgb', 'gps', 'speed', 'compass', 'weather', 'next_command', 'x_target', 'y_target'])
 		# exit()
 
+
+
 		# tick_data, policy_input, rendered, target_gps, target_command = self.tick(input_data, timestamp)
 		return result, obs_dict, birdview_obs['rendered'], target_gps, target_command
+		# obs_dict --> obs_dict = {'state': state.astype(np.float32),'birdview': birdview_obs['masks'],}
 
 	def im_render(self, render_dict):
 		im_birdview = render_dict['rendered']

@@ -93,6 +93,7 @@ class BasicScenario(object):
 
         # Set the appropriate road friction
         if self.config.friction is not None:
+            # add friction triggers(carla docs)
             friction_bp = world.get_blueprint_library().find('static.trigger.friction')
             extent = carla.Location(1000000.0, 1000000.0, 1000000.0)
             friction_bp.set_attribute('friction', str(self.config.friction))
@@ -103,6 +104,7 @@ class BasicScenario(object):
             # Spawn Trigger Friction
             transform = carla.Transform()
             transform.location = carla.Location(-10000.0, -10000.0, 0.0)
+            # spawn_actor(self, blueprint, transform)
             world.spawn_actor(friction_bp, transform)
 
     def _initialize_actors(self, config):

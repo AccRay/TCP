@@ -106,6 +106,14 @@ class ScenarioManager(object):
         self.scenario_class = scenario
         self.scenario = scenario.scenario
         self.scenario_tree = self.scenario.scenario_tree
+
+        # print("********************************************")
+        # print(scenario.ego_vehicles)
+        # print(scenario.other_actors)
+        # [<carla.libcarla.Vehicle object at 0x7fc11d3b5990>]
+        # [<carla.libcarla.Vehicle object at 0x7fc11eee7090>, .......]
+        # print("********************************************")
+
         self.ego_vehicles = scenario.ego_vehicles
         self.other_actors = scenario.other_actors
         self.repetition_number = rep_number
@@ -162,6 +170,8 @@ class ScenarioManager(object):
             except Exception as e:
                 raise AgentError(e)
 
+            # appplies a control object on the next tick, containing driving parameters such as throttle,
+            # steering or gear shifting
             self.ego_vehicles[0].apply_control(ego_action)
 
             # Tick scenario
@@ -176,6 +186,8 @@ class ScenarioManager(object):
             if self.scenario_tree.status != py_trees.common.Status.RUNNING:
                 self._running = False
 
+            # return the specatator actor,(acts as a camera and controls the view in the simulator window)
+            # carla.Actor
             spectator = CarlaDataProvider.get_world().get_spectator()
             ego_trans = self.ego_vehicles[0].get_transform()
             spectator.set_transform(carla.Transform(ego_trans.location + carla.Location(z=50),

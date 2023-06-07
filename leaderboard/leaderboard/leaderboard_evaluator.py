@@ -206,6 +206,8 @@ class LeaderboardEvaluator(object):
         """
 
         if not wait_for_ego_vehicles:
+            # print("ego_vehicles:")
+            # print(ego_vehicles) # =[]
             for vehicle in ego_vehicles:
                 self.ego_vehicles.append(CarlaDataProvider.request_new_actor(vehicle.model,
                                                                              vehicle.transform,
@@ -221,6 +223,8 @@ class LeaderboardEvaluator(object):
                 for ego_vehicle in ego_vehicles:
                     ego_vehicle_found = False
                     carla_vehicles = CarlaDataProvider.get_world().get_actors().filter('vehicle.*')
+                    print("carla_vehicles:")
+                    print(carla_vehicles)
                     for carla_vehicle in carla_vehicles:
                         if carla_vehicle.attributes['role_name'] == ego_vehicle.rolename:
                             ego_vehicle_found = True
@@ -285,6 +289,7 @@ class LeaderboardEvaluator(object):
         # register statistics
         # config.agent? 
         # statistics_manager = StatisticsManager()
+        # compute the score of the route & whether we complete the route
         current_stats_record = self.statistics_manager.compute_route_statistics(
             config,
             self.manager.scenario_duration_system,
@@ -303,6 +308,9 @@ class LeaderboardEvaluator(object):
         Depending on what code fails, the simulation will either stop the route and
         continue from the next one, or report a crash and stop.
         """
+        # print("config.ego_vehicles111111")
+        # print(config.ego_vehicles) # []
+
         crash_message = ""
         entry_status = "Started"
 
@@ -328,6 +336,9 @@ class LeaderboardEvaluator(object):
             # data_collection --> <roach_ap_agent.ROACHAgent object at 0x7fb9abac1b90>
             # run_evaluation ---> tcp_agent
             print(config.agent)
+            # print(config.trajectory)
+            # print(config.trajectory)
+            # print(config.trajectory)
             print('llll')
 
 
@@ -379,7 +390,12 @@ class LeaderboardEvaluator(object):
 
         # Load the world and the scenario
         try:
+            # print("config.ego_vehicles")
+            # print(config.ego_vehicles)  #  = []
+
             self._load_and_wait_for_world(args, config.town, config.ego_vehicles)
+            # print("config.ego_vehicles")
+            # print(config.ego_vehicles)  #  = []
             self._prepare_ego_vehicles(config.ego_vehicles, False)
 
             # config.agent  --> roach_ap_agent
@@ -479,7 +495,13 @@ class LeaderboardEvaluator(object):
         # agent_class_name = getattr(self.module_agent, 'get_entry_point')()
         # self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
 
+        # the route & SCENARIOS are xml files
+        # return: an object    
+        # self._configs_list = a lot of configs(list)
         route_indexer = RouteIndexer(args.routes, args.scenarios, args.repetitions)
+        # print(dir(route_indexer))
+        # ['_configs_dict', '_configs_list', '_index', '_repetitions', '_routes_file', '_scenarios_file', 
+        # 'n_routes', 'next', 'peek', 'resume', 'routes_length', 'save_state', 'total']
         
         # wether to resume the project
         if args.resume:
@@ -490,8 +512,15 @@ class LeaderboardEvaluator(object):
             route_indexer.save_state(args.checkpoint)
 
         while route_indexer.peek():
-            # setup
+            # setup next waypoint(config)
             config = route_indexer.next()
+            # print(dir(config))
+            # print('********************************************************')
+            # print('config.trajectory:') # [<carla.libcarla.Location object at 0x7f73fe594630>, <carla.libcarla.Location object at 0x7f73fe594670>]
+            # print(config.trajectory[0].distance(config.trajectory[1])) 
+            # 'agent', 'ego_vehicles', 'friction', 'index', 'name', 'other_actors', 
+            # 'repetition_index', 'route', 'route_var_name', 'scenario_file', 
+            # 'subtype', 'town', 'trajectory', 'trigger_points', 'type', 'weather']
 
             # run agent
             self._load_and_run_scenario(args, config)

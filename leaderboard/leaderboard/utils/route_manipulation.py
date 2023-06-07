@@ -150,7 +150,17 @@ def interpolate_trajectory(world, waypoints_trajectory, hop_resolution=1.0):
 
         waypoint = waypoints_trajectory[i]
         waypoint_next = waypoints_trajectory[i + 1]
+        # print("waypoints_trajectory")
+        # print(dir(waypoints_trajectory))
+        # print(len(waypoints_trajectory)) # 2
+        # print("waypoint")
+        # print(waypoint)
+        # print("waypoint_next")
+        # print(waypoint_next)
+
+        #trace_route(loc, destination)
         interpolated_trace = grp.trace_route(waypoint, waypoint_next)
+
         for wp_tuple in interpolated_trace:
             route.append((wp_tuple[0].transform, wp_tuple[1]))
             wp_route.append((wp_tuple[0], wp_tuple[1]))
