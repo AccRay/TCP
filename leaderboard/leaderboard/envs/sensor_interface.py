@@ -86,7 +86,7 @@ class BaseReader(object):
     def destroy(self):
         self._run_ps = False
 
-
+# agent_wrapper
 class SpeedometerReader(BaseReader):
     """
     Sensor to measure the speed of the vehicle.
@@ -138,6 +138,12 @@ class CallBack(object):
         self._data_provider.register_sensor(tag, sensor_type, sensor)
 
     def __call__(self, data):
+        import traceback
+        # print("******************")
+        # print(traceback.extract_stack())
+        # print("******************")
+
+        # check the object's 
         if isinstance(data, carla.libcarla.Image):
             self._parse_image_cb(data, self._tag)
         elif isinstance(data, carla.libcarla.LidarMeasurement):
@@ -202,7 +208,8 @@ class CallBack(object):
     def _parse_pseudosensor(self, package, tag):
         self._data_provider.update_sensor(tag, package.data, package.frame)
 
-#     attention CallBack function 
+#     attention CallBack function
+# agent_wrapper 
 # sensor.listen(CallBack(sensor_spec['id'], sensor_spec_spec{'type'], sensor, self.agent.sensor_interface}))
 class SensorInterface(object):
     """
@@ -236,6 +243,13 @@ class SensorInterface(object):
     def get_data(self):
         try: 
             data_dict = {}
+            # print("self._sensors_objects")
+            # print(self._sensors_objects.keys()) #dict_keys(['rgb', 'imu', 'gps', 'speed'])
+            # print(self._sensors_objects)
+            # {'rgb': <carla.libcarla.ServerSideSensor object at 0x7f09ce13a210>, 
+            # 'imu': <carla.libcarla.ServerSideSensor object at 0x7f09ce13a270>, 
+            # 'gps': <carla.libcarla.ServerSideSensor object at 0x7f09ce13aab0>, 
+            # 'speed': <leaderboard.envs.sensor_interface.SpeedometerReader object at 0x7f09cfd0a850>}
             while len(data_dict.keys()) < len(self._sensors_objects.keys()):
 
                 # Don't wait for the opendrive sensor

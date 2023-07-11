@@ -224,6 +224,10 @@ class RouteScenario(BasicScenario):
 
 		# prepare route's trajectory (interpolate and add the GPS route)
 		# config.trajectory include a start point and an end point(carla.Location)
+		# return a list of route's waypoints
+		# waypoints waypoints wapoints
+		# wp_toute = [0] -> waypoint, [1] -> RoadOption
+		# route = [0] -> waypoint.transform, [1] -> RoadOption
 		gps_route, route, wp_route = interpolate_trajectory(world, config.trajectory)
 
 		potential_scenarios_definitions, _ = RouteParser.scan_route_for_scenarios(
@@ -235,12 +239,10 @@ class RouteScenario(BasicScenario):
 
 		# print(gps_route)
 		# print(self.route)
-		print(len(wp_route)) #204
+		# print(len(wp_route)) #204
 
 		# used roach_ap_agent ----> to set plan 
 		config.agent.set_global_plan(gps_route, self.route, wp_route)
-
-
 
 
 

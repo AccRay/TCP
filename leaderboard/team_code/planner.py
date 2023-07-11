@@ -53,6 +53,7 @@ class RoutePlanner(object):
         self.route.clear()
 
         if global_plan_world:
+            # cmd means RoadOption
             for (pos, cmd), (pos_word, _ )in zip(global_plan, global_plan_world):
                 if gps:
                     pos = np.array([pos['lat'], pos['lon']])

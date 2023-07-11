@@ -159,11 +159,18 @@ def interpolate_trajectory(world, waypoints_trajectory, hop_resolution=1.0):
         # print(waypoint_next)
 
         #trace_route(loc, destination)
+        #         This method returns list of (carla.Waypoint, RoadOption) from origin to destination
         interpolated_trace = grp.trace_route(waypoint, waypoint_next)
-
+        print("****************************************************")
+        print("len(interpolate_trajectory):")
+        i = 0
         for wp_tuple in interpolated_trace:
+            i+=1
+            #wp_tuple[0] -> waypoint, wp_tuple[1] -> RoadOption
             route.append((wp_tuple[0].transform, wp_tuple[1]))
             wp_route.append((wp_tuple[0], wp_tuple[1]))
+        print(i)
+        print("****************************************************")
 
     lat_ref, lon_ref = _get_latlon_ref(world)
 

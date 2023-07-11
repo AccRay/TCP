@@ -308,8 +308,6 @@ class LeaderboardEvaluator(object):
         Depending on what code fails, the simulation will either stop the route and
         continue from the next one, or report a crash and stop.
         """
-        # print("config.ego_vehicles111111")
-        # print(config.ego_vehicles) # []
 
         crash_message = ""
         entry_status = "Started"
@@ -318,6 +316,11 @@ class LeaderboardEvaluator(object):
         print("> Setting up the agent\033[0m")
 
         # Prepare the statistics of the route
+        # config.index means id
+        print('config.name') 
+        print('config.index') #id
+        print(config.name)
+        print(config.index)
         self.statistics_manager.set_route(config.name, config.index)
 
         # Set up the user's agent, and the timer to avoid freezing the simulation
@@ -399,6 +402,7 @@ class LeaderboardEvaluator(object):
             self._prepare_ego_vehicles(config.ego_vehicles, False)
 
             # config.agent  --> roach_ap_agent
+            # # config.agent set_global_plan _update_route
             scenario = RouteScenario(world=self.world, config=config, debug_mode=args.debug)
             self.statistics_manager.set_scenario(scenario.scenario)
 
