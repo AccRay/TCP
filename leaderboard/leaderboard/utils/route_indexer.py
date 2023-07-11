@@ -40,6 +40,8 @@ class RouteIndexer():
             # print("config")
             # print(config)
             # <srunner.scenarioconfigs.route_scenario_configuration.RouteScenarioConfiguration object>
+            # every config means a route's start point and end point
+
             for repetition in range(repetitions):
                 config.index = i * self._repetitions + repetition
                 config.repetition_index = repetition
@@ -48,7 +50,7 @@ class RouteIndexer():
                 # print(config.trajectory) # [<carla.libcarla.Location object at 0x7f7769281f70>, <carla.libcarla.Location object at 0x7f7769281fb0>]
                 # print(config.scenario_file) # leaderboard/data/scenarios/all_towns_traffic_scenarios.json
         # print(len(list(self._configs_dict.items())))
-        # 300
+        # 300routes (you can find it at leaderboard/data/TCP_training_routes/routes_town01.xml)
         self._configs_list = list(self._configs_dict.items())
 
     def peek(self):
@@ -58,6 +60,9 @@ class RouteIndexer():
         return not (self._index >= len(self._configs_list))
 
     def next(self):
+        '''
+        every config means a route's start point and end point
+        '''
         if self._index >= len(self._configs_list):
             return None
 
