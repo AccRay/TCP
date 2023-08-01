@@ -250,6 +250,7 @@ class SensorInterface(object):
             # 'imu': <carla.libcarla.ServerSideSensor object at 0x7f09ce13a270>, 
             # 'gps': <carla.libcarla.ServerSideSensor object at 0x7f09ce13aab0>, 
             # 'speed': <leaderboard.envs.sensor_interface.SpeedometerReader object at 0x7f09cfd0a850>}
+
             while len(data_dict.keys()) < len(self._sensors_objects.keys()):
 
                 # Don't wait for the opendrive sensor
@@ -259,6 +260,18 @@ class SensorInterface(object):
                     break
 
                 sensor_data = self._new_data_buffers.get(True, self._queue_timeout)
+                # print('0')
+                # print(sensor_data[0]) # speed # gps # imu #rgb #speed
+                # print('1')
+                # print(sensor_data[1]) # 6647 # 6648 #6648 # 6648 # 6648
+                # print('2')
+                # print(sensor_data[2]) 
+                # {'speed': 6.000958825897827} 
+                #[-0.00353461 -0.00122955  0.03390758] 
+                #[ 8.13830458e-03  3.37037832e-01  9.81461239e+00 -1.13950064e-03 
+                # -2.11213715e-03  1.92240141e-02  4.37126827e+00]
+                # ...
+                # {'speed': 6.000641253858435}
                 data_dict[sensor_data[0]] = ((sensor_data[1], sensor_data[2]))
 
         except Empty:

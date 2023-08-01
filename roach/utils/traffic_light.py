@@ -10,6 +10,7 @@ def _get_traffic_light_waypoints(traffic_light, carla_map):
     adapted from "carla-simulator/scenario_runner/srunner/scenariomanager/scenarioatomics/atomic_criteria.py"
     """
     base_transform = traffic_light.get_transform()
+    # TrafficLight.trigger_volumue -> carla.boundingBox
     tv_loc = traffic_light.trigger_volume.location
     tv_ext = traffic_light.trigger_volume.extent
 
@@ -56,6 +57,9 @@ def _get_traffic_light_waypoints(traffic_light, carla_map):
 
         loc_left = wpx.transform.location - 0.4 * wpx.lane_width * vec_right
         loc_right = wpx.transform.location + 0.4 * wpx.lane_width * vec_right
+        # print("traffic_light")
+        # print(loc_left) # Vector3D(x=325.411804, y=0.388562, z=0.000000)
+        # print(loc_right) # Vector3D(x=325.410095, y=3.588562, z=0.000000)
         stopline_vertices.append([loc_left, loc_right])
 
     # all paths at junction for this traffic light
