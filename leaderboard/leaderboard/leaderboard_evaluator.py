@@ -245,6 +245,7 @@ class LeaderboardEvaluator(object):
         Load a new CARLA world and provide data to CarlaDataProvider
         """
         self.traffic_manager.set_synchronous_mode(False)
+        # self.traffic_manager.set_synchronous_mode(True)
         # if hasattr(self, 'world'):
         #     settings = self.world.get_settings()
         #     settings.synchronous_mode = False
@@ -449,6 +450,8 @@ class LeaderboardEvaluator(object):
         # if timestamp ---> _tick_scenario(timestamp)
         # _tick_scenario(timestamp) ---> ego_action = self._agent()
         # autoagents/agent_wrapper __call ---> 
+        
+        # self.manager = ScenarioManager(args.timeout, args.debug > 1)
         self.manager.run_scenario()
 
         # except AgentError as e:

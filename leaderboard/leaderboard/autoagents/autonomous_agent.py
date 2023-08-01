@@ -46,6 +46,31 @@ class AutonomousAgent(object):
 
         self.wallclock_t0 = None
 
+    def __call__(self):
+        """
+        Execute the agent call, e.g. agent()
+        Returns the next vehicle controls
+        """
+        input_data = self.sensor_interface.get_data()
+
+        timestamp = GameTime.get_time()
+
+        if not self.wallclock_t0:
+            self.wallclock_t0 = GameTime.get_wallclocktime()
+        wallclock = GameTime.get_wallclocktime()
+        wallclock_diff = (wallclock - self.wallclock_t0).total_seconds()
+
+        # print('======[Agent] Wallclock_time = {} / {} / Sim_time = {} / {}x'.format(wallclock, wallclock_diff, timestamp, timestamp/(wallclock_diff+0.001)))
+        surrounding_data  = 1
+
+
+        # input_data.append(surrounding_data)
+        # AttributeError: 'dict' object has no attribute 'append'
+        control = self.run_step(input_data, timestamp)
+        control.manual_gear_shift = False
+
+        return control
+    
     def setup(self, path_to_conf_file):
         """
         Initialize everything needed by your agent and set the track attribute to the right type:
@@ -95,27 +120,6 @@ class AutonomousAgent(object):
         :return:
         """
         pass
-
-    def __call__(self):
-        """
-        Execute the agent call, e.g. agent()
-        Returns the next vehicle controls
-        """
-        input_data = self.sensor_interface.get_data()
-
-        timestamp = GameTime.get_time()
-
-        if not self.wallclock_t0:
-            self.wallclock_t0 = GameTime.get_wallclocktime()
-        wallclock = GameTime.get_wallclocktime()
-        wallclock_diff = (wallclock - self.wallclock_t0).total_seconds()
-
-        # print('======[Agent] Wallclock_time = {} / {} / Sim_time = {} / {}x'.format(wallclock, wallclock_diff, timestamp, timestamp/(wallclock_diff+0.001)))
-
-        control = self.run_step(input_data, timestamp)
-        control.manual_gear_shift = False
-
-        return control
 
     def set_global_plan(self, global_plan_gps, global_plan_world_coord, wp=None):
         """
