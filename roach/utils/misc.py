@@ -91,38 +91,57 @@ def get_helper_landmarks(world=None, waypoint=None, distance=50.0, getAll=False)
             # print("-" * 20)
     return record_land_mark
 
-def calculate_angle_between_front_and_current(current_vehicle_location, current_vehicle_rocation, front_vehicle_location):
+def calculate_angle_between_front_and_current(current_location, current_rocation, front_location):
     """
-    left:True
-    right:False
+    return: 
+    left:True, right:False
+    angle_between_actors: return degrees
     """
-    dx = front_vehicle_location.x - current_vehicle_location.x
-    dy = front_vehicle_location.y - current_vehicle_location.y
+    dx = front_location.x - current_location.x
+    dy = front_location.y - current_location.y
     ev_fv_vector = [dx, dy, 0]
 
-    ev_yaw_rad = math.radians(current_vehicle_rocation.yaw)
+    ev_yaw_rad = math.radians(current_rocation.yaw)
     ev_vector = [math.cos(ev_yaw_rad), math.sin(ev_yaw_rad),0]
-    
+
     unit_ev_fv_vector = ev_fv_vector / np.linalg.norm(ev_fv_vector)
     unit_ev_vector    = ev_vector / np.linalg.norm(ev_vector)
     dot_product       = np.dot(unit_ev_fv_vector, unit_ev_vector)
     angle_radians     = np.arccos(np.clip(dot_product, -1.0, 1.0))
-    angle_degrees     = np.degrees(angle_radians)
+    angle_between_actors     = np.degrees(angle_radians)
 
-    # 
+
     cross_product = np.cross(ev_fv_vector, ev_vector)
+    is_left = cross_product[2] > 0
 
-    return cross_product[2] > 0, angle_degrees, 
+    return is_left, angle_between_actors
 
-def find_actor_by_bounding_box(world, target_bounding_box):
-    for actor in world.get_actors():
-        # only in map01
-        if actor.type_id.startswith("traffic.speed_limit"):
-            actor_transform = actor.get_transform()
-            if actor_transform.location == target_bounding_box.location and \
-                actor_transform.rotation == target_bounding_box.rotation:
-                    return actor
-    return None
+def calculate_direction_angle_between_front_and_current(current_rocation, front_rotation):
+
+    fv_yaw_rad = math.radians(front_rotation.yaw)
+    fv_vector = [math.cos(fv_yaw_rad), math.sin(fv_yaw_rad),0]
+
+    ev_yaw_rad = math.radians(current_rocation.yaw)
+    ev_vector = [math.cos(ev_yaw_rad), math.sin(ev_yaw_rad),0]
+
+
+
+    unit_fv_vector = fv_vector / np.linalg.norm(fv_vector)
+    unit_ev_vector = ev_vector / np.linalg.norm(ev_vector)
+    dot_product    = np.dot(unit_fv_vector, unit_ev_vector)
+    angle_radians  = np.arccos(np.clip(dot_product, -1.0, 1.0))
+    angle_between_actors_direction = np.degrees(angle_radians)
+
+    return angle_between_actors_direction
+
+def calculate_speed_magnitue(actor):
+    '''
+    m/s
+    '''
+    velocity = actor.get_velocity()
+    speed = velocity.x**2 + velocity.y**2 + velocity.z**2
+    speed = speed ** 0.5
+    return speed
 
 def get_lane_center(map, location):
     """Project current loction to its lane center, return lane center waypoint"""
@@ -161,6 +180,9 @@ def is_within_distance_ahead(target_location, current_location, current_transfor
 
     return 0.0 < d_angle < 90.0
 
+def calculate_distance_between_location(location_A, location_B):
+    return location_A.distance(location_B)
+
 def is_vehicle_on_road(world, vehicle_bbox):
     location = vehicle_bbox[1]
     waypoint = world.get_map().get_waypoint(location, project_to_road=True)
@@ -169,12 +191,3 @@ def is_vehicle_on_road(world, vehicle_bbox):
     #     if 'road' in actor.type_id:
     #         return True
     # return False
-
-# def is_vehicle_on_road(world, vehicle_bboxs):
-#     for vehicle_bbox in vehicle_bboxs:
-#         collision = world.get_physics_control().collision_detection(vehicle_bbox)
-#         if collision.has_collision:
-#             collided_actor_type = collision.other_actor.type_id
-#             if 'road' in collided_actor_type:
-#                 return True
-#     return False

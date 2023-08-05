@@ -8,9 +8,10 @@ import h5py
 import math
 
 from roach.utils.traffic_light import TrafficLightHandler
-from roach.utils.misc import find_actor_by_bounding_box, \
-	get_helper_landmarks, calculate_angle_between_front_and_current,\
-	is_vehicle_on_road
+from roach.utils.misc import get_helper_landmarks, \
+	calculate_angle_between_front_and_current,\
+	calculate_direction_angle_between_front_and_current, calculate_distance_between_location,\
+	calculate_speed_magnitue
 
 COLOR_BLACK = (0, 0, 0)
 COLOR_RED = (255, 0, 0)
@@ -25,6 +26,13 @@ COLOR_WHITE = (255, 255, 255)
 COLOR_ALUMINIUM_0 = (238, 238, 236)
 COLOR_ALUMINIUM_3 = (136, 138, 133)
 COLOR_ALUMINIUM_5 = (46, 52, 54)
+
+ACTOR_INFO = [
+	"distance_to_ego",
+	"direction_to_ego",
+	"speed",
+	"forward_vector",
+]
 
 
 def tint(color, factor):
@@ -72,10 +80,7 @@ class ObsManager():
 	def attach_ego_vehicle(self, ego_vehicle):
 		self._parent_actor = ego_vehicle
 		self._world = self._parent_actor.get_world()
-
-
 		maps_h5_path = self._map_dir / (self._world.get_map().name + '.h5')
-		# 
 
 		with h5py.File(maps_h5_path, 'r', libver='latest', swmr=True) as hf:
 			# print("h5_map")
@@ -103,6 +108,16 @@ class ObsManager():
 			trans = stop_sign.get_transform()
 			stops = [(carla.Transform(trans.location, trans.rotation), bb_loc, bb_ext)]
 		return stops
+	
+	@staticmethod
+	def _get_front_tl_stopline(ev_loc, ev_rot, stop_lines):
+		stoplines = []
+		for stop in stop_lines:
+			loc = stop[1]
+			is_front_vehicle_at_left, angle_to_ego = calculate_angle_between_front_and_current(ev_loc, ev_rot, loc)
+			if -80 < angle_to_ego < 80:
+				stoplines.append(stop)
+		return stoplines
 
 	def get_observation(self, route_plan):
 		ev_transform = self._parent_actor.get_transform()
@@ -127,18 +142,18 @@ class ObsManager():
 		walker_bbox_list = self._world.get_level_bbs(carla.CityObjectLabel.Pedestrians)
 
 		if self._scale_bbox:
-			vehicles = self._get_surrounding_actors(vehicle_bbox_list, is_within_distance, 1.0)
-			walkers = self._get_surrounding_actors(walker_bbox_list, is_within_distance, 2.0)
+			vehicles = self._get_surrounding_boundings(vehicle_bbox_list, is_within_distance, 1.0)
+			walkers = self._get_surrounding_boundings(walker_bbox_list, is_within_distance, 2.0)
 		else:
-			vehicles = self._get_surrounding_actors(vehicle_bbox_list, is_within_distance)
-			walkers = self._get_surrounding_actors(walker_bbox_list, is_within_distance)
+			vehicles = self._get_surrounding_boundings(vehicle_bbox_list, is_within_distance)
+			walkers = self._get_surrounding_boundings(walker_bbox_list, is_within_distance)
 
 		tl_green = TrafficLightHandler.get_stopline_vtx(ev_loc, 0)
 		tl_yellow = TrafficLightHandler.get_stopline_vtx(ev_loc, 1)
 		tl_red = TrafficLightHandler.get_stopline_vtx(ev_loc, 2)
 
 		stops = self._get_stops(self._criteria_stop)
-
+		
 		self._history_queue.append((vehicles, walkers, tl_green, tl_yellow, tl_red, stops))
 
 		
@@ -241,24 +256,19 @@ class ObsManager():
 			# other objects were very close to the vehicle
 			c_ev = abs(ev_loc.x - w.location.x) < 1.0 and abs(ev_loc.y - w.location.y) < 1.0
 			return c_distance and (not c_ev)
-	
-		vehicle_bbox_list = self._world.get_level_bbs(carla.CityObjectLabel.Vehicles)
 
-		walker_bbox_list = self._world.get_level_bbs(carla.CityObjectLabel.Pedestrians)
+		vehicle_actor_list = self._world.get_actors().filter('vehicle.*')
+		walker_actor_list = self._world.get_actors().filter('walker.pedestrian.*')
+		vehicles = self._get_surrounding_actors(vehicle_actor_list, is_within_distance)
+		walkers  = self._get_surrounding_actors(walker_actor_list, is_within_distance)
+		# use carla.actor to filter surrounding actor(instead of boundingBox)
 
-		if self._scale_bbox:
-			vehicles = self._get_surrounding_actors(vehicle_bbox_list, is_within_distance, 1.0)
-			walkers = self._get_surrounding_actors(walker_bbox_list, is_within_distance, 2.0)
-		else:
-			vehicles = self._get_surrounding_actors(vehicle_bbox_list, is_within_distance)
-			walkers = self._get_surrounding_actors(walker_bbox_list, is_within_distance)
-
-		
-		left, right = self._distinguish_front_vehicle_direction(vehicles)
-
-
+		# format at ACTOR_INFO
+		left_vehicles, mid_vehicles, right_vehicles = self._distinguish_front_actor_direction(vehicles)
+		left_walkers, mid_walkers, right_walkers = self._distinguish_front_actor_direction(walkers)
 
 		# ev_loc --> ego_vehicle_location
+		# the vertex of the stop line for traffic lights within 50m(include the rear of the vehicle)
 		tl_green = TrafficLightHandler.get_stopline_vtx(ev_loc, 0, 50)
 		tl_yellow = TrafficLightHandler.get_stopline_vtx(ev_loc, 1, 50)
 		tl_red = TrafficLightHandler.get_stopline_vtx(ev_loc, 2, 50)
@@ -266,29 +276,40 @@ class ObsManager():
 		# [[left, right],[left, right]]
 		# [[<carla.libcarla.Vector3D object at 0x7f43dbd63c90>, <carla.libcarla.Vector3D object at 0x7f43dbd63cf0>], 
 		# [<carla.libcarla.Vector3D object at 0x7f43dbd64690>, <carla.libcarla.Vector3D object at 0x7f43dbd646f0>]]
+		front_tl_green = self._get_front_tl_stopline(ev_loc, ev_rot, tl_green)
+		front_tl_yellow = self._get_front_tl_stopline(ev_loc, ev_rot, tl_yellow)
+		front_tl_red = self._get_front_tl_stopline(ev_loc, ev_rot, tl_red)
 
 		stops = self._get_stops(self._criteria_stop)
 
+		# get ground marking
 		ego_vehicle_waypoint = self._world.get_map().get_waypoint(self._parent_actor.get_location())
-		record_land_marks = get_helper_landmarks(None, ego_vehicle_waypoint, 200.0)
-		# record_land_marks = get_helper_landmarks(self._world, ego_vehicle_waypoint, 200.0, False)
+		record_land_marks = get_helper_landmarks(None, ego_vehicle_waypoint, 50.0)
 
-		self._history_surroudings_queue.append((vehicles, walkers, tl_green, tl_yellow, tl_red, stops, record_land_marks))
+		self._history_surroudings_queue.append((left_vehicles, mid_vehicles, right_vehicles,
+					  left_walkers, mid_walkers, right_walkers,
+					  tl_green, tl_yellow, tl_red, stops, record_land_marks))
+		
 		# reference to run_stop_sign
 		surroundings_info = {
-			'vehicles': vehicles,
-			'walkers': walkers,
-			'tl_green': tl_green, 
-			'tl_yello': tl_yellow, 
-			'tl_red': tl_red, 
+			'left_vehicles' : left_vehicles,
+			'mid_vehicles'  : mid_vehicles,
+			'right_vehicles': right_vehicles,
+			'left_walkers' : left_walkers,
+			'mid_walkers'  : mid_walkers,
+			'right_walkers': right_walkers,
+			# 'tl_green': tl_green,
+			# 'tl_yello': tl_yellow, 
+			# 'tl_red': tl_red,
+			'front_tl_green': front_tl_green,
+			'front_tl_yellow': front_tl_yellow, 
+			'front_tl_red': front_tl_red,
 			'stops': stops,
 		}
 		# print("information of yaw(vehicle direction):")
 		# print(self._parent_actor.get_transform().rotation.yaw)
 
 		surroundings_info.update(record_land_marks)
-		# if surroundings_info["StopSign"]==True:
-		# 	print(surroundings_info)
 		return surroundings_info
 
 	def _get_history_masks(self, M_warp):
@@ -340,7 +361,17 @@ class ObsManager():
 		return mask.astype(np.bool)
 
 	@staticmethod
-	def _get_surrounding_actors(bbox_list, criterium, scale=None):
+	def _get_surrounding_actors(actor_list, criterium):
+		actors = []
+		for actor in actor_list:
+			is_within_distance = criterium(actor.get_transform())
+			if is_within_distance:
+				actors.append(actor)
+		return actors
+
+
+	@staticmethod
+	def _get_surrounding_boundings(bbox_list, criterium, scale=None):
 		actors = []
 		for bbox in bbox_list:
 			is_within_distance = criterium(bbox)
@@ -354,41 +385,56 @@ class ObsManager():
 					bb_ext = bb_ext * scale
 					bb_ext.x = max(bb_ext.x, 0.8)
 					bb_ext.y = max(bb_ext.y, 0.8)
-				bb_loc = bbox.location
+				# # why didnot add it?
+				# bb_loc = bbox.location
 				actors.append((carla.Transform(bbox.location, bbox.rotation), bb_loc, bb_ext))
 		return actors
 
-	def _distinguish_front_vehicle_direction(self, bbox_list):
+	def _distinguish_front_actor_direction(self, actor_list):
+		'''
+		distinguish front vehicles' direction to ego vehicle
+		return a list of the vehicle info
+		'''
 		ev_transform = self._parent_actor.get_transform()
 		ev_loc = ev_transform.location
 		ev_rot = ev_transform.rotation
 
-		left_actors=[]
-		right_actors=[]
-		for bbox in bbox_list:
-			direction, angle = calculate_angle_between_front_and_current(ev_loc, ev_rot, bbox[1])
-			if -70 < angle < 70:
-				print("The direction is:",direction)
-				print("The angle is:",angle)
-				if direction:
-					# print("right actor's location")
-					# print(bbox[1])
-					# print("ego actor's location")
-					# print(ev_loc)
-					left_actors.append(bbox)
-				else:
-					# print("left actor's location")
-					# print(bbox[1])
-					right_actors.append(bbox)
-				# print("angle")
-				# print(angle)
-		
-		print("left_actors")
-		print(left_actors)
+		left_actors = []
+		mid_actors = []
+		right_actors = []
+		for actor in actor_list:
+			transform = actor.get_transform()
+			loc = transform.location
+			rot = transform.rotation
+			is_front_vehicle_at_left, angle_to_ego = calculate_angle_between_front_and_current(ev_loc, ev_rot, loc)
+			
+			if -70 < angle_to_ego < 70:
+				distance = calculate_distance_between_location(ev_loc, loc)
+				speed    = calculate_speed_magnitue(actor)
+				forward_vector_to_ego = calculate_direction_angle_between_front_and_current(ev_rot, rot)
 
-		print("right_actors")
-		print(right_actors)
-		return left_actors, right_actors
+				merged_dict = dict(zip(ACTOR_INFO, [distance, angle_to_ego, speed, forward_vector_to_ego]))
+				if -3 < angle_to_ego < 3:
+					mid_actors.append(merged_dict)
+				elif is_front_vehicle_at_left:
+					left_actors.append(merged_dict)
+				else:
+					right_actors.append(merged_dict)
+		
+		# print("left_actors:")
+		# for actor in left_actors:
+		# 	print(' '*20, actor)
+		# 	print('-' * 2)
+
+		# print("mid_actors:")
+		# for actor in mid_actors:
+		# 	print(' '*20, actor.type_id)
+
+		# print("right_actors")
+		# # print(right_actors)
+		# for actor in right_actors:
+		# 	print(' '*20, actor.type_id)
+		return left_actors, mid_actors, right_actors
 		
 	def _get_warp_transform(self, ev_loc, ev_rot):
 		ev_loc_in_px = self._world_to_pixel(ev_loc)
