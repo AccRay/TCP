@@ -324,6 +324,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		# return obs_dict = {'rendered': image, 'masks': masks} ---> rendered(test_save_path)
 		birdview_obs = self.birdview_obs_manager.get_observation(self._global_route)
 		surroundings_info = self.birdview_obs_manager.get_surroundings()
+
 		# print("roach_ap_agent")
 		# print(surroundings_info)
 
