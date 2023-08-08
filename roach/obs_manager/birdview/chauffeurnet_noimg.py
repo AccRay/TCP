@@ -116,6 +116,7 @@ class ObsManager():
 			loc = stop[1]
 			is_front_vehicle_at_left, angle_to_ego = calculate_angle_between_front_and_current(ev_loc, ev_rot, loc)
 			if -80 < angle_to_ego < 80:
+				# stoplines.append([stop[0].x, stop[0].y, stop[0].z])
 				stoplines.append(stop)
 		return stoplines
 
@@ -301,9 +302,9 @@ class ObsManager():
 			# 'tl_green': tl_green,
 			# 'tl_yello': tl_yellow, 
 			# 'tl_red': tl_red,
-			'front_tl_green': front_tl_green,
-			'front_tl_yellow': front_tl_yellow, 
-			'front_tl_red': front_tl_red,
+			# 'front_tl_green': front_tl_green,
+			# 'front_tl_yellow': front_tl_yellow, 
+			# 'front_tl_red': front_tl_red,
 			'stops': stops,
 		}
 		# print("information of yaw(vehicle direction):")

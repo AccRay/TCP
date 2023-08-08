@@ -3,7 +3,7 @@ import os
 import sys
 import tqdm
 
-def remove_files(root, index, items = {"bev":".png", "meta":".json", "rgb":".png", "supervision":".npy"}):
+def remove_files(root, index, items = {"bev":".png", "meta":".json", "rgb":".png", "supervision":".npy", "surroundings":".json"}):
 	# items = {"measurements":".json", "rgb_front":".png"}
 	items = {}
 	sub_folders = list(os.listdir(root))
@@ -22,30 +22,45 @@ def remove_files(root, index, items = {"bev":".png", "meta":".json", "rgb":".png
 
 if __name__ == '__main__':
 	routes_type = ["short"]
-	towns = ["town05", "town06","town07", "town10"]
+	# towns = ["town05", "town06","town07", "town10"]
+	towns = ["town01", "town02"]
 
-	result_path = ""
-	result_pattern = "routes_{}_{}.json" # town, type
+	# result_path = ""
+	result_path = "/home/ubuntu2204/TCP-main/TCP/"
+	# result_pattern = "routes_{}_{}.json" # town, type
+	result_pattern = "data_collect_{}_results.json" # town, type
 
-	data_path = ""
-	data_pattern = "{}_{}" # town, type
+	# data_path = ""
+	data_path = "/home/ubuntu2204/TCP-main/TCP/data"
+	# data_pattern = "{}_{}" # town, type
+	data_pattern = "data_collect_{}_results" # town, type
 
 	for type in routes_type:
 		print(type)
 		for town in tqdm.tqdm(towns):
-			result_file = result_pattern.format(town, type)
-			data_folder = data_pattern.format(town, type)
+			# result_file = result_pattern.format(town, type)
+			result_file = result_pattern.format(town)
+			# data_folder = data_pattern.format(town, type)
+			data_folder = data_pattern.format(town)
 			data_folder = os.path.join(data_path, data_folder)
+
+			# print("data_folder:", data_folder)
 			sub_folders = os.listdir(data_folder)
 			sub_folders = sorted(list(sub_folders))
+			# print("sub_folders:", sub_folders)
+			# print("result_path:", result_path)
+			# print("result_file:", result_file)
 
 			# read the record of each route
 			with open(os.path.join(result_path, result_file), 'r') as f:
 				records = json.load(f)
 			records = records["_checkpoint"]["records"]
+			# print("records:", records)
+
 			for index, record in enumerate(records):
 				route_data_folder = os.path.join(data_folder, sub_folders[index])
 				total_length = len(os.listdir(os.path.join(route_data_folder, "measurements")))
+
 				if record["scores"]["score_composed"] >= 100:
 					continue
 				# timeout or blocked, remove the last ones where the vehicle stops

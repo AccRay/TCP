@@ -29,14 +29,14 @@ class RunStopSign():
             self._target_stop_sign = self._scan_for_stop_sign(vehicle.get_transform())
             if self._target_stop_sign is not None:
                 stop_loc = self._target_stop_sign.get_location()
-                info = {
-                    'event': 'encounter',
-                    'step': timestamp['step'],
-                    'simulation_time': timestamp['relative_simulation_time'],
-                    'id': self._target_stop_sign.id,
-                    'stop_loc': [stop_loc.x, stop_loc.y, stop_loc.z],
-                    'ev_loc': [ev_loc.x, ev_loc.y, ev_loc.z]
-                }
+                # info = {
+                #     'event': 'encounter',
+                #     'step': timestamp['step'],
+                #     'simulation_time': timestamp['relative_simulation_time'],
+                #     'id': self._target_stop_sign.id,
+                #     'stop_loc': [stop_loc.x, stop_loc.y, stop_loc.z],
+                #     'ev_loc': [ev_loc.x, ev_loc.y, ev_loc.z]
+                # }
         else:
             # we were in the middle of dealing with a stop sign
             if not self._stop_completed:
@@ -57,20 +57,20 @@ class RunStopSign():
                 if not self._stop_completed and self._affected_by_stop:
                     # did we stop?
                     stop_loc = self._target_stop_sign.get_transform().location
-                    info = {
-                        'event': 'run',
-                        'step': timestamp['step'],
-                        'simulation_time': timestamp['relative_simulation_time'],
-                        'id': self._target_stop_sign.id,
-                        'stop_loc': [stop_loc.x, stop_loc.y, stop_loc.z],
-                        'ev_loc': [ev_loc.x, ev_loc.y, ev_loc.z]
-                    }
+                    # info = {
+                    #     'event': 'run',
+                    #     'step': timestamp['step'],
+                    #     'simulation_time': timestamp['relative_simulation_time'],
+                    #     'id': self._target_stop_sign.id,
+                    #     'stop_loc': [stop_loc.x, stop_loc.y, stop_loc.z],
+                    #     'ev_loc': [ev_loc.x, ev_loc.y, ev_loc.z]
+                    # }
                 # reset state
                 self._target_stop_sign = None
                 self._stop_completed = False
                 self._affected_by_stop = False
 
-        return info
+        # return info
 
     def _scan_for_stop_sign(self, vehicle_transform):
         target_stop_sign = None
