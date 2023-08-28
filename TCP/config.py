@@ -8,14 +8,16 @@ class GlobalConfig:
 
 	# data root
 	# root_dir_all = "tcp_carla_data"
-	root_dir_all = "/media/ubuntu2204/A582B933E386E737/data"
+	# root_dir_all = "/media/ubuntu2204/A582B933E386E737/data"
+	root_dir_all = "/home/ubuntu2204/TCP-main/TCP/data"
 
 	# train_towns = ['town01', 'town03', 'town04',  'town06', ]
 	# val_towns = ['town02', 'town05', 'town07', 'town10']
 	train_towns = ['town01']
 	val_towns = ['town02']
+	# val_towns = ['town01_addition']
 	
-	train_data, val_data = [], []
+	train_data, val_data = [], [] 
 	for town in train_towns:		
 		train_data.append(os.path.join(root_dir_all, town))
 		train_data.append(os.path.join(root_dir_all, town+'_addition'))

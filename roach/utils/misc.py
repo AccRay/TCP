@@ -52,9 +52,10 @@ def get_helper_landmarks(world=None, waypoint=None, distance=50.0, getAll=False)
     # the actor's stopsign is not the landmark stopsigns
     
     record_land_mark ={
-        "MaximumSpeed": None,
-        "StopSign": False,
-        "YieldSign": False,
+        # "MaximumSpeed": None,
+        "MaximumSpeed": 0,
+        "StopSign": 0,
+        "YieldSign": 0,
     }
     for landmark in landmarks:
         landmark_type = int(landmark.type)
@@ -68,15 +69,16 @@ def get_helper_landmarks(world=None, waypoint=None, distance=50.0, getAll=False)
             elif landmark_type == 206:
                 if str(landmark.orientation) == 'Negative':
                     continue
-                stop_sign = True
-                record_land_mark["StopSign"] = stop_sign
+                # stop_sign = True
+                # record_land_mark["StopSign"] = stop_sign
+                record_land_mark["StopSign"] = 1
                 # print("Landmark Orientation", landmark.orientation)
                 # print([landmark.transform.location.x, landmark.transform.location.y, landmark.transform.location.z])
                 # add orientation
                 # print("stop_sign:", stop_sign)
             elif landmark_type == 205:
                 yield_sign = True
-                record_land_mark["YieldSign"] = yield_sign
+                record_land_mark["YieldSign"] = 1
                 # print("yield_sign:", yield_sign)
             else:
                 print("misc.py")

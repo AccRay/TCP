@@ -433,15 +433,8 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		# draw the future?
 		render_img = self.im_render(render_dict)
 
-		# ************************************************************************
-		# frame = self.step // 10 - 2
-		self.test = rendered
-		# Image.fromarray(tick_data['rgb']).save('test_save_path' / 'rgb' / ('%04d.png' % frame))
-		# Image.fromarray(rendered).save('test_save_path' / 'rendered_bev' / ('%04d.png' % frame))
 
-		# ************************************************************************
-
-
+		
 		supervision_dict = {
 			'action': np.array([control.throttle, control.steer, control.brake], dtype=np.float32),
 			'value': values[0],

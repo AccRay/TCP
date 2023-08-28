@@ -7,69 +7,33 @@ from pathlib import Path
 import h5py
 
 from roach.utils.traffic_light import TrafficLightHandler
-'''
-这段代码是一个用于生成观测数据的ObsManager类。它使用Carla模拟器和OpenAI Gym进行交互。让我解释一下代码的主要部分。
 
-首先我们导入所需的库:包括numpy、carla、gym、cv2、deque和Path等。这些库用于处理图像、Carla模拟器、路径操作和队列等。
-
-ObsManager类的初始化函数接收一个obs_configs参数和一个criteria_stop参数。obs_configs是一个包含观测配置信息的字典,包括宽度、像素和米的转换关系等。criteria_stop用于处理停止标志的类。
-
-在attach_ego_vehicle函数中,我们将Carla模拟器中的自动驾驶车辆与ObsManager实例关联起来。通过这个函数,我们可以获取Carla世界的地图信息和车辆的位置、旋转等信息。
-
-get_observation函数是获取观测数据的主要函数。它根据车辆的位置和旋转计算出各种掩码和图像。掩码用于表示道路、车道、行人、交通信号灯等的位置,图像用于渲染可视化结果。
-
-在函数中，首先根据车辆位置计算出各个物体的位置和范围。然后，根据车辆的历史信息和当前信息，生成车辆、行人、交通信号灯等的掩码。掩码是二值图像，表示了这些物体在图像中的位置。
-
-接下来，根据地图信息和路径规划，生成道路、车道和行驶路线的掩码。将这些掩码和物体的掩码合并到一起，并根据颜色编码将它们渲染到图像上。
-
-最后，将图像和掩码作为观测数据返回。图像用于可视化观测结果，掩码用于进一步的处理和分析。
-
-以上就是代码的主要逻辑和功能。ObsManager类负责处理观测数据的生成,以支持Carla模拟器和OpenAI Gym的交互
-'''
-
-COLOR_BLACK = (0, 0, 0)
-COLOR_RED = (255, 0, 0)
-COLOR_GREEN = (0, 255, 0)
-COLOR_BLUE = (0, 0, 255)
-COLOR_CYAN = (0, 255, 255)
-COLOR_MAGENTA = (255, 0, 255)
-COLOR_MAGENTA_2 = (255, 140, 255)
-COLOR_YELLOW = (255, 255, 0)
-COLOR_YELLOW_2 = (160, 160, 0)
-COLOR_WHITE = (255, 255, 255)
-COLOR_ALUMINIUM_0 = (238, 238, 236)
-COLOR_ALUMINIUM_3 = (136, 138, 133)
-COLOR_ALUMINIUM_5 = (46, 52, 54)
-
-
-def tint(color, factor):
-	r, g, b = color
-	r = int(r + (255-r) * factor)
-	g = int(g + (255-g) * factor)
-	b = int(b + (255-b) * factor)
-	r = min(r, 255)
-	g = min(g, 255)
-	b = min(b, 255)
-	return (r, g, b)
 
 
 class ObsManager():
+	"""
+	rewrite the observation
+	we donnot need the birdview to tackle the surroundings
+	"""
 	def __init__(self, obs_configs, criteria_stop=None):
+
 		self._width = int(obs_configs['width_in_pixels'])
 		self._pixels_ev_to_bottom = obs_configs['pixels_ev_to_bottom']
 		self._pixels_per_meter = obs_configs['pixels_per_meter']
 		self._history_idx = obs_configs['history_idx']
 		self._scale_bbox = obs_configs.get('scale_bbox', True)
 		self._scale_mask_col = obs_configs.get('scale_mask_col', 1.1)
-
-		self._history_queue = deque(maxlen=20)
-
 		self._image_channels = 3
 		self._masks_channels = 3 + 3*len(self._history_idx)
+
+		self._map_dir = Path(__file__).resolve().parent / 'maps'
+		
+
 		self._parent_actor = None
 		self._world = None
 
-		self._map_dir = Path(__file__).resolve().parent / 'maps'
+		self._history_queue = deque(maxlen=20)
+
 
 		self._criteria_stop = criteria_stop
 
@@ -79,13 +43,10 @@ class ObsManager():
 		self._parent_actor = ego_vehicle
 		self._world = self._parent_actor.get_world()
 
+
 		maps_h5_path = self._map_dir / (self._world.get_map().name + '.h5')
-		# 
 
 		with h5py.File(maps_h5_path, 'r', libver='latest', swmr=True) as hf:
-			# print("h5_map")
-			# we can find the map at roach/obs_manager/birdview/maps/Townxx.h5
-			# the xxx.h5 files are generated at carla-roach/carla-gym/utils/birdview_map.py
 
 			self._road = np.array(hf['road'], dtype=np.uint8)
 			self._lane_marking_all = np.array(hf['lane_marking_all'], dtype=np.uint8)
@@ -123,11 +84,6 @@ class ObsManager():
 			c_ev = abs(ev_loc.x - w.location.x) < 1.0 and abs(ev_loc.y - w.location.y) < 1.0
 			return c_distance and (not c_ev)
 			
-		# return a list of bounding boxes with location and rotation in world space.
-		# the method returns all the bounding boxes in the level by default
-		# but the query can be filtered by semantic tags with the argument--> actor_type
-		# return  carla.boundingbox
-		#carla.boundingBox (extent(vector3D)/location/rotation)
 		vehicle_bbox_list = self._world.get_level_bbs(carla.CityObjectLabel.Vehicles)
 
 		walker_bbox_list = self._world.get_level_bbs(carla.CityObjectLabel.Pedestrians)
@@ -143,66 +99,27 @@ class ObsManager():
 		tl_green = TrafficLightHandler.get_stopline_vtx(ev_loc, 0)
 		tl_yellow = TrafficLightHandler.get_stopline_vtx(ev_loc, 1)
 		tl_red = TrafficLightHandler.get_stopline_vtx(ev_loc, 2)
-		# print("tl_red")
-		# print(tl_red)
-		# [[<carla.libcarla.Vector3D object at 0x7f43dbd63c90>, <carla.libcarla.Vector3D object at 0x7f43dbd63cf0>], 
-		# [<carla.libcarla.Vector3D object at 0x7f43dbd64690>, <carla.libcarla.Vector3D object at 0x7f43dbd646f0>], 
-		# [<carla.libcarla.Vector3D object at 0x7f43dbd5c4b0>, <carla.libcarla.Vector3D object at 0x7f43dbd5c510>], 
-		# [<carla.libcarla.Vector3D object at 0x7f43db173570>, <carla.libcarla.Vector3D object at 0x7f43db173510>], 
-		# [<carla.libcarla.Vector3D object at 0x7f43db176870>, <carla.libcarla.Vector3D object at 0x7f43db1768d0>], 
-		# [<carla.libcarla.Vector3D object at 0x7f43db175090>, <carla.libcarla.Vector3D object at 0x7f43db1750f0>]]
 
 		stops = self._get_stops(self._criteria_stop)
 
 		self._history_queue.append((vehicles, walkers, tl_green, tl_yellow, tl_red, stops))
 
+		# reference to run_stop_sign
+		surrounding_info = {
+			'vehicles':vehicles, 
+			'walkers':walkers, 
+			'tl_green':tl_green, 
+			'tl_yello':tl_yellow, 
+			'tl_red':tl_red, 
+			'stops':stops,
+		}
 
-		# convert images from a vehicles's perspective into a top view (why? how?)
-		# for further processing or analysis
-		# do we need that??  (pixels_per_meter)
-		# M_warp is a 2*3 matrix. By multiplying this affine matrix, points in the world coordinate
-		# system canbe transformed into points in the image.
 		M_warp = self._get_warp_transform(ev_loc, ev_rot)
 
 		# objects with history
 		vehicle_masks, walker_masks, tl_green_masks, tl_yellow_masks, tl_red_masks, stop_masks \
 			= self._get_history_masks(M_warp)
 		
-		# we need to check what is the Town01.h5
-		# print("self._road")
-		# print(self._road)
-		# print("self._lane_marking_all")
-		# print(self._lane_marking_all)
-		# self._road
-		# [[0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]
-		# ...
-		# [0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]]
-		# self._lane_marking_all
-		# [[0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]
-		# ...
-		# [0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]
-		# [0 0 0 ... 0 0 0]]
-
-		# cv.getAffineTransform: 
-		# 这个函数用于计算仿射变换的矩阵。给定源点集和目标点集，它会计算出一个2x3的仿射矩阵，表示从源点集到目标点集的仿射变换关系。
-		# 该函数主要用于计算仿射变换矩阵，但不进行实际的图像变换操作。
-		# 
-		# cv.warpAffine: 
-		# 这个函数用于应用仿射变换到图像上。给定一个输入图像和一个仿射变换矩阵，它会对输入图像进行变换，并返回变换后的图像。
-		# 具体而言，它会根据仿射矩阵的定义，将输入图像的像素位置映射到变换后的图像中的新位置。这个函数实际上执行了图像的几何变换操作。
-
-		# cv.getAffineTransform用于计算仿射变换的矩阵，而cv.warpAffine用于将计算得到的仿射变换矩阵应用到图像上，实现图像的几何变换。
-
-		# cv.polylines函数在输入图像上绘制指定的多边形轮廓。
-		# 它可以用于可视化对象的轮廓、绘制边界框、绘制路径等应用场景。通过指定不同的顶点坐标和参数，可以绘制不同形状和样式的轮廓。
-
 		# road_mask, lane_mask
 		road_mask = cv.warpAffine(self._road, M_warp, (self._width, self._width)).astype(np.bool)
 		lane_mask_all = cv.warpAffine(self._lane_marking_all, M_warp, (self._width, self._width)).astype(np.bool)
@@ -246,6 +163,7 @@ class ObsManager():
 		image[ev_mask] = COLOR_WHITE
 		# image[obstacle_mask] = COLOR_BLUE
 
+
 		# masks
 		c_road = road_mask * 255
 		c_route = route_mask * 255
@@ -268,9 +186,12 @@ class ObsManager():
 		masks = np.stack((c_road, c_route, c_lane, *c_vehicle_history, *c_walker_history, *c_tl_history), axis=2)
 		masks = np.transpose(masks, [2, 0, 1])
 
-		obs_dict = {'rendered': image, 
-	      			'masks': masks,
-					'surroundings': }
+
+		obs_dict = {
+			'rendered': image, 
+	      	'masks': masks,
+			# 'surrounding_info':surrounding_info
+			}
 
 		# self._parent_actor.collision_px = np.any(ev_mask_col & walker_masks[-1])
 
@@ -329,6 +250,9 @@ class ObsManager():
 			if is_within_distance:
 				bb_loc = carla.Location()
 				bb_ext = carla.Vector3D(bbox.extent)
+				# Vector3D(x=2.601919, y=1.307286, z=1.233722)
+				# print(bb_ext)
+				# use for describe the location of the vehicle/president/road...
 				if scale is not None:
 					bb_ext = bb_ext * scale
 					bb_ext.x = max(bb_ext.x, 0.8)

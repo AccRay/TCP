@@ -517,7 +517,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		traffic_light_state, light_loc, light_id = TrafficLightHandler.get_light_state(self._ego_vehicle)
 
 		surroundings_dict = {
-			'is_junction': ego_vehicle_waypoint.is_junction,
+			'is_junction': 1 if ego_vehicle_waypoint.is_junction else 0,
 			# 'is_at_traffic_light': self._ego_vehicle.is_at_traffic_light(),
 			'traffic_light_state': TRAFFIC_LIGHT_STATE[str(traffic_light_state)], # 0, 1, 2, 3 None, Red, Green, Yellow
 			# 'traffic_sign':1,
@@ -627,8 +627,8 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		frame = self.step // 10 - 2
 
         # save image and bev
-		Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%04d.png' % frame))
-		Image.fromarray(render_img).save(self.save_path / 'bev' / ('%04d.png' % frame))
+		# Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%04d.png' % frame))
+		# Image.fromarray(render_img).save(self.save_path / 'bev' / ('%04d.png' % frame))
 		
 		pos = self._get_position(tick_data)
 		# tick_data['gps']
@@ -662,7 +662,8 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		with open(self.save_path / 'supervision' / ('%04d.npy' % frame), 'wb') as f:
 			np.save(f, supervision_dict)
 		
-		print(surroundings_dict)
+		# print("roach_ap_noimng_agent")
+		# print(surroundings_dict)
 		with open(self.save_path / 'surroundings' / ('%04d.npy' % frame), 'wb') as f:
 			np.save(f, surroundings_dict)  
 		# with open(self.save_path / 'surroundings' / ('%04d.pkl' % frame), 'wb') as f:

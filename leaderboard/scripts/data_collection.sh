@@ -25,10 +25,10 @@ export DATA_COLLECTION=True
 
 
 # Roach data collection
-export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+# export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+# export ROUTES=leaderboard/data/TCP_training_routes/routes_town02.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town03.xml
-
-
+# export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town04.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town10.xml
 
@@ -37,14 +37,28 @@ export TEAM_AGENT=team_code/roach_ap_noimg_agent.py
 
 
 export TEAM_CONFIG=roach/config/config_agent.yaml
-export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
+# export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
 # export CHECKPOINT_ENDPOINT=data_collect_town02_results.json
 # export CHECKPOINT_ENDPOINT=data_collect_town03_results.json
 # export CHECKPOINT_ENDPOINT=data_collect_town04_results.json
 export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
-export SAVE_PATH=data/data_collect_town01_results/
-# export SAVE_PATH=data/data_collect_town02_results/
 
+# export SAVE_PATH=data/data_collect_town01_results/
+
+
+
+export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+# export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
+# export ROUTES=leaderboard/data/TCP_training_routes/routes_town01_addition.xml
+
+# export CHECKPOINT_ENDPOINT=data_collect_town02_val_results.json
+# export CHECKPOINT_ENDPOINT=data_collect_town01_addition_results.json
+export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
+
+# export SAVE_PATH=data/data_collect_town02_results/
+# export SAVE_PATH=data/town02_val/
+# export SAVE_PATH=data/town01_addition/ 
+export SAVE_PATH=data/town01/ 
 
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --scenarios=${SCENARIOS}  \
@@ -58,6 +72,5 @@ python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --record=${RECORD_PATH} \
 --resume=${RESUME} \
 --port=${PORT} \
---trafficManagerPort=${TM_PORT}
-
-
+--trafficManagerPort=${TM_PORT}\
+# >> output.log

@@ -3,9 +3,12 @@ import os
 import sys
 import tqdm
 
-def remove_files(root, index, items = {"bev":".png", "meta":".json", "rgb":".png", "supervision":".npy", "surroundings":".json"}):
-	# items = {"measurements":".json", "rgb_front":".png"}
-	items = {}
+# def remove_files(root, index, items = {"bev":".png", "meta":".json", "rgb":".png", "supervision":".npy", "surroundings":".npy"}):
+def remove_files(root, index, items = {"meta":".json", "supervision":".npy", "surroundings":".npy"}):
+	# items = {"measurements":".json", "rgb_front":".png"}/
+	# items = {"measurements":".json",}
+	# items = {}
+	items = {"supervision":".npy", "surroundings":".npy", "measurements":".json"}
 	sub_folders = list(os.listdir(root))
 	for sub_folder in sub_folders:
 		if len(list(os.listdir(os.path.join(root, sub_folder)))) == 0:
@@ -23,17 +26,20 @@ def remove_files(root, index, items = {"bev":".png", "meta":".json", "rgb":".png
 if __name__ == '__main__':
 	routes_type = ["short"]
 	# towns = ["town05", "town06","town07", "town10"]
-	towns = ["town01", "town02"]
+	towns = ["town01_addition", "town02_val"]
+	# towns = ["town01"]
 
 	# result_path = ""
 	result_path = "/home/ubuntu2204/TCP-main/TCP/"
-	# result_pattern = "routes_{}_{}.json" # town, type
-	result_pattern = "data_collect_{}_results.json" # town, type
+	result_pattern = "data_collect_{}_results.json" # town
+	# result_pattern = "{}_results_02.json" # town
 
 	# data_path = ""
 	data_path = "/home/ubuntu2204/TCP-main/TCP/data"
 	# data_pattern = "{}_{}" # town, type
-	data_pattern = "data_collect_{}_results" # town, type
+	# data_pattern = "data_collect_{}_results" # town, type
+	data_pattern = "{}" # town, type
+	# data_pattern = "{}_addition" # town, type
 
 	for type in routes_type:
 		print(type)
@@ -47,9 +53,6 @@ if __name__ == '__main__':
 			# print("data_folder:", data_folder)
 			sub_folders = os.listdir(data_folder)
 			sub_folders = sorted(list(sub_folders))
-			# print("sub_folders:", sub_folders)
-			# print("result_path:", result_path)
-			# print("result_file:", result_file)
 
 			# read the record of each route
 			with open(os.path.join(result_path, result_file), 'r') as f:

@@ -178,7 +178,9 @@ if __name__ == "__main__":
 	print("train data")
 	# ['/media/ubuntu2204/A582B933E386E737/data/town01', '/media/ubuntu2204/A582B933E386E737/data/town01_addition']
 	# config.img_aug = True
-
+	# print(config.root_dir_all)
+	# print(config.val_data)
+	# exit()
 	train_set = CARLA_Data(root=config.root_dir_all, data_folders=config.train_data, img_aug = config.img_aug)
 	print(len(train_set))
 	
@@ -187,6 +189,7 @@ if __name__ == "__main__":
  
 
 	dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=8)
+
 	dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=8)
 
 	# initialize the model and data
