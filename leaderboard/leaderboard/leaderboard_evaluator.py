@@ -132,10 +132,6 @@ class LeaderboardEvaluator(object):
         # Create the ScenarioManager
         self.manager = ScenarioManager(args.timeout, args.debug > 1)
 
-        # print("*********************************")
-        # print(self.manager)
-        # print("*********************************")
-
         # Time control for summary purposes
         self._start_time = GameTime.get_time()
         self._end_time = None
@@ -214,7 +210,6 @@ class LeaderboardEvaluator(object):
                                                                              vehicle.rolename,
                                                                              color=vehicle.color,
                                                                              vehicle_category=vehicle.category))
-
         else:
             ego_vehicle_missing = True
             while ego_vehicle_missing:
@@ -318,10 +313,9 @@ class LeaderboardEvaluator(object):
 
         # Prepare the statistics of the route
         # config.index means id
-        print('config.name') 
-        print('config.index') #id
-        print(config.name)
-        print(config.index)
+        print('config.name: ', config.name) 
+        print('config.index: ',config.index) #id
+
         self.statistics_manager.set_route(config.name, config.index)
 
         # Set up the user's agent, and the timer to avoid freezing the simulation
@@ -504,6 +498,9 @@ class LeaderboardEvaluator(object):
 
         # the route & SCENARIOS are xml files
         # return: an object    
+        # ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+        # SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
+
         # self._configs_list = a lot of configs(list)
         route_indexer = RouteIndexer(args.routes, args.scenarios, args.repetitions)
         # print(dir(route_indexer))

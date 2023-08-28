@@ -282,14 +282,21 @@ class ObsManager():
 		front_tl_red = self._get_front_tl_stopline(ev_loc, ev_rot, tl_red)
 
 		stops = self._get_stops(self._criteria_stop)
-
+		if not stops:
+			stop_sign_locs = [0, 0, 0]
+		else:
+			print("stops")
+			print(stops)
+			stop_sign_locs = [stops[0][1].x, stops[0][1].y, stops[0][1].z]
+			print(stop_sign_locs)
 		# get ground marking
 		ego_vehicle_waypoint = self._world.get_map().get_waypoint(self._parent_actor.get_location())
 		record_land_marks = get_helper_landmarks(None, ego_vehicle_waypoint, 50.0)
 
 		self._history_surroudings_queue.append((left_vehicles, mid_vehicles, right_vehicles,
 					  left_walkers, mid_walkers, right_walkers,
-					  tl_green, tl_yellow, tl_red, stops, record_land_marks))
+					#   tl_green, tl_yellow, tl_red, 
+					  stop_sign_locs, record_land_marks))
 		
 		# reference to run_stop_sign
 		surroundings_info = {
@@ -305,7 +312,7 @@ class ObsManager():
 			# 'front_tl_green': front_tl_green,
 			# 'front_tl_yellow': front_tl_yellow, 
 			# 'front_tl_red': front_tl_red,
-			'stops': stops,
+			'stops': stop_sign_locs,
 		}
 		# print("information of yaw(vehicle direction):")
 		# print(self._parent_actor.get_transform().rotation.yaw)

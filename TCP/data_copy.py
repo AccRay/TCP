@@ -50,16 +50,6 @@ class CARLA_Data(Dataset):
 		self.command = []
 		self.only_ap_brake = []
 
-		self.is_junction         = []
-		self.traffic_light_state = []
-		self.vehicles            = []
-		self.walkers             = []
-		self.stops               = []
-		self.maximum_speed       = []
-		self.stop_sign           = []
-		self.yield_sign          = []
-
- 
 		for sub_root in data_folders:
 			# need to check packed_data.npy
 			data = np.load(os.path.join(sub_root, "packed_data.npy"), allow_pickle=True).item()
@@ -68,7 +58,7 @@ class CARLA_Data(Dataset):
 			self.y_command += data['y_target']
 			self.command += data['target_command']
 
-			# self.front_img += data['front_img']
+			self.front_img += data['front_img']
 			self.x += data['input_x']
 			self.y += data['input_y']
 			self.theta += data['input_theta']
@@ -90,29 +80,26 @@ class CARLA_Data(Dataset):
 			self.action_mu += data['action_mu']
 			self.action_sigma += data['action_sigma']
 			self.only_ap_brake += data['only_ap_brake']
-				
-			self.is_junction         += data['input_is_junction']
-			self.traffic_light_state += data['input_traffic_light_state']
-			self.vehicles            += data['input_vehicles']
-			self.walkers             += data['input_walkers']
-			self.stops               += data['input_stops']
-			self.maximum_speed       += data['input_maximum_speed']
-			self.stop_sign           += data['input_stop_sign']
-			self.yield_sign          += data['input_yield_sign']
-      
-
-
 		# It allows you to create a sequence of image transformations that can be applied
 		self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
 
 	def __len__(self):
 		"""Returns the length of the dataset. """
-		# return len(self.front_img)
-		return len(self.is_junction)
+		return len(self.front_img)
 
 	def __getitem__(self, index):
 		"""Returns the item at index idx. """
 		data = dict()
+		data['front_img'] = self.front_img[index]
+
+		# whether to use image augment()
+		if self.img_aug:
+			# Apply the converted operation to the image(defined at T.Compose)
+			data['front_img'] = self._im_transform(augmenter(self._batch_read_number).augment_image(np.array(
+					Image.open(self.root+self.front_img[index][0]))))
+		else:
+			data['front_img'] = self._im_transform(np.array(
+					Image.open(self.root+self.front_img[index][0])))
 
 		# fix for theta=nan in some measurements
 		if np.isnan(self.theta[index][0]):
@@ -131,15 +118,6 @@ class CARLA_Data(Dataset):
 			local_command_point = np.array([self.future_y[index][i]-ego_y, self.future_x[index][i]-ego_x] )
 			local_command_point = R.T.dot(local_command_point)
 			waypoints.append(local_command_point)
-
-		data['is_junction']         = self.is_junction[index]
-		data['traffic_light_state'] = self.traffic_light_state[index]
-		data['vehicles']	        = [item for sublist in self.vehicles for item in sublist]
-		data['walkers']	            = [item for sublist in self.walkers for item in sublist]
-		data['stops']               = self.stops[index]
-		data['maximum_speed']       = self.maximum_speed[index]
-		data['stop_sign']           = self.stop_sign[index]
-		data['yield_sign']          = self.yield_sign[index]   
 
 		data['waypoints'] = np.array(waypoints)
 
