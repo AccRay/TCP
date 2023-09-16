@@ -132,14 +132,14 @@ class CARLA_Data(Dataset):
 			local_command_point = R.T.dot(local_command_point)
 			waypoints.append(local_command_point)
 
-		data['is_junction']         = self.is_junction[index]
-		data['traffic_light_state'] = self.traffic_light_state[index]
-		data['vehicles']	        = [item for sublist in self.vehicles for item in sublist]
-		data['walkers']	            = [item for sublist in self.walkers for item in sublist]
-		data['stops']               = self.stops[index]
-		data['maximum_speed']       = self.maximum_speed[index]
-		data['stop_sign']           = self.stop_sign[index]
-		data['yield_sign']          = self.yield_sign[index]   
+		data['is_junction']         = torch.tensor(self.is_junction[index], dtype=torch.float32)
+		# data['traffic_light_state'] = self.traffic_light_state[index]
+		data['vehicles']	        = torch.tensor(flatten([item for sublist in self.vehicles[index] for item in sublist]), dtype=torch.float32)
+		data['walkers']	            = torch.tensor(flatten([item for sublist in self.walkers[index] for item in sublist]), dtype=torch.float32)
+		data['stops']               = torch.tensor(flatten(self.stops[index]), dtype=torch.float32)
+		data['maximum_speed']       = torch.tensor([int(item) for item in self.maximum_speed[index]], dtype=torch.float32)
+		data['stop_sign']           = torch.tensor(self.stop_sign[index], dtype=torch.float32)
+		data['yield_sign']          = torch.tensor(self.yield_sign[index], dtype=torch.float32)
 
 		data['waypoints'] = np.array(waypoints)
 
@@ -185,6 +185,14 @@ class CARLA_Data(Dataset):
 		data['feature'] = self.feature[index]
 		data['value'] = self.value[index]
 		command = self.command[index]
+		traffic_light_state = self.traffic_light_state[index]
+
+		if traffic_light_state not in [0, 1, 2, 3]:
+			traffic_light_state = 0
+		assert  traffic_light_state in [0, 1, 2, 3]
+		traffic_light_state_one_hot = [0] * 4
+		traffic_light_state_one_hot[traffic_light_state] = 1
+		data['traffic_light_state'] = torch.tensor(traffic_light_state_one_hot, dtype=torch.float32)
 
 		# VOID = -1
 		# LEFT = 1
@@ -204,6 +212,16 @@ class CARLA_Data(Dataset):
 		self._batch_read_number += 1
 		return data
 
+
+
+def flatten(input_list):
+	result = []
+	for item in input_list:
+		if isinstance(item, list):
+			result.extend(flatten(item))
+		else:
+			result.append(item)
+	return result
 
 def scale_and_crop_image(image, scale=1, crop_w=256, crop_h=256):
 	"""

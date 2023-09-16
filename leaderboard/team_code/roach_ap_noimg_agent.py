@@ -319,6 +319,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		# define self._last_route_location
         # define self._globa_route
 		self._truncate_global_route_till_local_target()
+		# self._draw_waypoints(CarlaDataProvider.get_world(), self._global_route, vertical_shift=1.0, persistency=3)
 
         # birdview_obss_manager ---> roach.obs_manager.birdview.chauffeurnet  import ObsManager
 		# return obs_dict = {'rendered': image, 'masks': masks} ---> rendered(test_save_path)
@@ -515,6 +516,24 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		# print(ego_vehicle_waypoint.get_left_lane())
 		# print(ego_vehicle_waypoint.get_right_lane())
 		traffic_light_state, light_loc, light_id = TrafficLightHandler.get_light_state(self._ego_vehicle)
+
+		ev_location = self._ego_vehicle.get_location()
+		if(len(self._global_route) >= 16):
+			waypoints = self._global_route[0:16]
+			wp = []
+			for waypoint in waypoints:
+				wp.append(waypoint.transform.location - ev_location)
+		else:
+			waypoints = self._global_route[0:len(self._global_route)]
+			wp = []
+			for waypoint in waypoints:
+				wp.append(waypoint.transform.location - ev_location)
+			temp = [[-1 for i in range(2)]for i in range(16)][0:len(self._global_route)]
+			wp = temp[0:len(self._global_route)] + wp
+		print(wp)
+
+
+
 
 		surroundings_dict = {
 			'is_junction': 1 if ego_vehicle_waypoint.is_junction else 0,
@@ -835,3 +854,31 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		matrix[2, 2] = c_p * c_r
 		return matrix
 
+	def _draw_waypoints(self, world, waypoints, vertical_shift, persistency=-1):
+		"""
+		Draw a list of waypoints at a certain height given in vertical_shift.
+		"""
+		for w in waypoints:
+			wp = w[0].transform.location + carla.Location(z=vertical_shift)
+
+			size = 0.2
+			if w[1] == RoadOption.LEFT:  # Yellow
+				color = carla.Color(255, 255, 0)
+			elif w[1] == RoadOption.RIGHT:  # Cyan
+				color = carla.Color(0, 255, 255)
+			elif w[1] == RoadOption.CHANGELANELEFT:  # Orange
+				color = carla.Color(255, 64, 0)
+			elif w[1] == RoadOption.CHANGELANERIGHT:  # Dark Cyan
+				color = carla.Color(0, 64, 255)
+			elif w[1] == RoadOption.STRAIGHT:  # Gray
+				color = carla.Color(128, 128, 128)
+			else:  # LANEFOLLOW
+				color = carla.Color(0, 255, 0) # Green
+				size = 0.1
+
+			world.debug.draw_point(wp, size=size, color=color, life_time=persistency)
+
+		world.debug.draw_point(waypoints[0][0].transform.location + carla.Location(z=vertical_shift), size=0.2,
+							   color=carla.Color(0, 0, 255), life_time=persistency)
+		world.debug.draw_point(waypoints[-1][0].transform.location + carla.Location(z=vertical_shift), size=0.2,
+							   color=carla.Color(255, 0, 0), life_time=persistency)
