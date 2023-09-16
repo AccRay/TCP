@@ -7,7 +7,6 @@ import tqdm
 def remove_files(root, index, items = {"meta":".json", "supervision":".npy", "surroundings":".npy"}):
 	# items = {"measurements":".json", "rgb_front":".png"}/
 	# items = {"measurements":".json",}
-	# items = {}
 	items = {"supervision":".npy", "surroundings":".npy", "measurements":".json"}
 	sub_folders = list(os.listdir(root))
 	for sub_folder in sub_folders:
@@ -27,7 +26,16 @@ if __name__ == '__main__':
 	routes_type = ["short"]
 	# towns = ["town05", "town06","town07", "town10"]
 	# towns = ["town01_addition", "town02_val"]
+<<<<<<< Updated upstream
 	towns = ["town03_val", "town03_addition"]
+=======
+	# towns = ["town05"]
+	# towns = ["town10"]
+	towns = ["town10_addition"]
+	towns = ["town07","town07_val"]
+	towns = ["town04_addition","town04_val"]
+	# towns = ["town01"]
+>>>>>>> Stashed changes
 
 	# result_path = ""
 	result_path = "/home/wyz/TCP"
