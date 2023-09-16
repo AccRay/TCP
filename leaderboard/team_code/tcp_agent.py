@@ -20,9 +20,24 @@ from leaderboard.autoagents import autonomous_agent
 from TCP.model import TCP
 from TCP.config import GlobalConfig
 from team_code.planner import RoutePlanner
+from leaderboard.utils.route_manipulation import downsample_route
+
+from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from roach.obs_manager.birdview.chauffeurnet_noimg import ObsManager
+from roach.utils.traffic_light import TrafficLightHandler
+from omegaconf import OmegaConf
+from roach.criteria import run_stop_sign
+from agents.navigation.local_planner import RoadOption
 
 
 SAVE_PATH = os.environ.get('SAVE_PATH', None)
+
+TRAFFIC_LIGHT_STATE = {
+	'None': 0,
+	'Red' : 1,
+	'Green': 2,
+	'Yellow': 3,
+}
 
 
 def get_entry_point():
@@ -39,6 +54,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		self.last_moving_step = -1
 		self.last_steers = deque()
 
+
 		self.config_path = path_to_conf_file
 		self.step = -1
 		self.wall_start = time.time()
@@ -51,13 +67,14 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		# print("************************************")
 		# print(path_to_conf_file)
 		# print("************************************")
-		ckpt = torch.load(path_to_conf_file)
+		ckpt = torch.load(path_to_conf_file, map_location='cuda:0')
+		# ckpt = torch.load(path_to_conf_file)
 
 
 		ckpt = ckpt["state_dict"]
 		new_state_dict = OrderedDict()
 		for key, value in ckpt.items():
-			new_key = key.replace("model.","")
+			new_key = key.replace("model.", "")
 			new_state_dict[new_key] = value
 		self.net.load_state_dict(new_state_dict, strict = False)
 		self.net.cuda()
@@ -71,6 +88,11 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
 
 		self.last_steers = deque()
+
+		cfg = OmegaConf.load('./roach/config/config_agent.yaml')
+		cfg = OmegaConf.to_container(cfg)
+		self.cfg = cfg
+
 		if SAVE_PATH is not None:
 			now = datetime.datetime.now()
 			string = pathlib.Path(os.environ['ROUTES']).stem + '_'
@@ -85,11 +107,24 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 			(self.save_path / 'meta').mkdir()
 			(self.save_path / 'bev').mkdir()
 
+			(self.save_path / 'surroundings').mkdir()
+
 	def _init(self):
 		self._route_planner = RoutePlanner(4.0, 50.0)
 		self._route_planner.set_route(self._global_plan, True)
 
 		self.initialized = True
+
+		self._ego_vehicle = CarlaDataProvider.get_ego()
+		self._world = CarlaDataProvider.get_world()
+		self._map = self._world.get_map()
+		self._criteria_stop = run_stop_sign.RunStopSign(self._world)
+		self.birdview_obs_manager = ObsManager(
+			self.cfg['obs_configs']['birdview'], self._criteria_stop)
+		self.birdview_obs_manager.attach_ego_vehicle(self._ego_vehicle)
+		TrafficLightHandler.reset(self._world)
+
+
 
 	def _get_position(self, tick_data):
 		gps = tick_data['gps']
@@ -135,6 +170,9 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 				]
 
 	def tick(self, input_data):
+		self._truncate_global_route_till_local_target()
+		# self._draw_waypoints(CarlaDataProvider.get_world(), self._global_route, vertical_shift=1.0, persistency=1)
+		# print(len(self._global_route))
 		self.step += 1
 
 		rgb = cv2.cvtColor(input_data['rgb'][1][:, :, :3], cv2.COLOR_BGR2RGB)
@@ -142,6 +180,9 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		gps = input_data['gps'][1][:2]
 		speed = input_data['speed'][1]['speed']
 		compass = input_data['imu'][1][-1]
+
+		# birdview_obs = self.birdview_obs_manager.get_observation(self._global_route)
+		surroundings_info = self.birdview_obs_manager.get_surroundings()
 
 		if (math.isnan(compass) == True): #It can happen that the compass sends nan for a few frames
 			compass = 0.0
@@ -157,6 +198,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		pos = self._get_position(result)
 		result['gps'] = pos
 		next_wp, next_cmd = self._route_planner.run_step(pos)
+
 		result['next_command'] = next_cmd.value
 
 
@@ -170,14 +212,54 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		local_command_point = R.T.dot(local_command_point)
 		result['target_point'] = tuple(local_command_point)
 
-		return result
+
+		return result, surroundings_info
 	@torch.no_grad()
 	def run_step(self, input_data, timestamp):
 		if not self.initialized:
 			self._init()
-		tick_data = self.tick(input_data)
+
+
+
+		tick_data, surroundings_info = self.tick(input_data)
+		pos = self._get_position(tick_data)
+
+		surroundings_left_vehicles = process_actor_info(surroundings_info['left_vehicles'], 1)
+		surroundings_mid_vehicles = process_actor_info(surroundings_info['mid_vehicles'], 2)
+		surroundings_right_vehicles = process_actor_info(surroundings_info['right_vehicles'], 3)
+		surroundings_left_walkers = process_actor_info(surroundings_info['left_walkers'], 1)
+		surroundings_mid_walkers = process_actor_info(surroundings_info['mid_walkers'], 2)
+		surroundings_right_walkers = process_actor_info(surroundings_info['right_walkers'], 3)
+		ego_vehicle_waypoint = self._map.get_waypoint(self._ego_vehicle.get_location())
+		vehicles_temp = surroundings_left_vehicles + surroundings_mid_vehicles + surroundings_right_vehicles
+		walkers_temp = surroundings_left_walkers + surroundings_mid_walkers + surroundings_right_walkers
+		is_junction_temp = 1 if ego_vehicle_waypoint.is_junction else 0
+		traffic_light_state_temp, light_loc, light_id = TrafficLightHandler.get_light_state(self._ego_vehicle)
+
+
+
+		traffic_light_state = TRAFFIC_LIGHT_STATE[str(traffic_light_state_temp)]
+		is_junction = torch.tensor(is_junction_temp, dtype=torch.float32).view(1, 1).to('cuda')
+		if traffic_light_state not in [0, 1, 2, 3]:
+			traffic_light_state = 0
+		assert traffic_light_state in [0, 1, 2, 3]
+		traffic_light_state_one_hot = [0] * 4
+		traffic_light_state_one_hot[traffic_light_state] = 1
+		traffic_light_state_end = torch.tensor(traffic_light_state_one_hot, dtype=torch.float32).view(1, -1).to('cuda')
+		stops = torch.tensor(flatten(surroundings_info['stops']), dtype=torch.float32).view(1, -1).to('cuda')
+		max_speed = torch.tensor(int(surroundings_info['MaximumSpeed']), dtype=torch.float32).view(1, 1).to('cuda')
+		stop_sign = torch.tensor(surroundings_info['StopSign'], dtype=torch.float32).view(1, -1).to('cuda')
+		yield_sign = torch.tensor(surroundings_info['YieldSign'], dtype=torch.float32).view(1, -1).to('cuda')
+		vehicles = torch.tensor(flatten([item for sublist in vehicles_temp for item in sublist]),
+										dtype=torch.float32).view(1, -1).to('cuda')
+		walkers = torch.tensor(flatten([item for sublist in walkers_temp for item in sublist]),
+								dtype=torch.float32).view(1, -1).to('cuda')
+
+
+
+
 		if self.step < self.config.seq_len:
-			rgb = self._im_transform(tick_data['rgb']).unsqueeze(0)
+			# rgb = self._im_transform(tick_data['rgb']).unsqueeze(0)
 
 			control = carla.VehicleControl()
 			control.steer = 0.0
@@ -197,14 +279,15 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		cmd_one_hot = torch.tensor(cmd_one_hot).view(1, 6).to('cuda', dtype=torch.float32)
 		speed = torch.FloatTensor([float(tick_data['speed'])]).view(1,1).to('cuda', dtype=torch.float32)
 		speed = speed / 12
-		rgb = self._im_transform(tick_data['rgb']).unsqueeze(0).to('cuda', dtype=torch.float32)
+		# rgb = self._im_transform(tick_data['rgb']).unsqueeze(0).to('cuda', dtype=torch.float32)
 
 		tick_data['target_point'] = [torch.FloatTensor([tick_data['target_point'][0]]),
 										torch.FloatTensor([tick_data['target_point'][1]])]
 		target_point = torch.stack(tick_data['target_point'], dim=1).to('cuda', dtype=torch.float32)
 		state = torch.cat([speed, target_point, cmd_one_hot], 1)
 
-		pred= self.net(rgb, state, target_point)
+		pred = self.net(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
+				traffic_light_state_end, state, target_point)
 
 		steer_ctrl, throttle_ctrl, brake_ctrl, metadata = self.net.process_action(pred, tick_data['next_command'], gt_velocity, target_point)
 
@@ -214,6 +297,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 
 		self.pid_metadata = metadata_traj
 		control = carla.VehicleControl()
+		# print(self.status)
 
 		if self.status == 0:
 			self.alpha = 0.3
@@ -227,6 +311,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 			control.steer = np.clip(self.alpha*steer_traj + (1-self.alpha)*steer_ctrl, -1, 1)
 			control.throttle = np.clip(self.alpha*throttle_traj + (1-self.alpha)*throttle_ctrl, 0, 0.75)
 			control.brake = np.clip(self.alpha*brake_traj + (1-self.alpha)*brake_ctrl, 0, 1)
+		print(control.steer, control.throttle, control.brake)
 
 
 		self.pid_metadata['steer_ctrl'] = float(steer_ctrl)
@@ -264,9 +349,9 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 	def save(self, tick_data):
 		frame = self.step // 10
 
-		Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%04d.png' % frame))
+		# Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%04d.png' % frame))
 
-		Image.fromarray(tick_data['bev']).save(self.save_path / 'bev' / ('%04d.png' % frame))
+		# Image.fromarray(tick_data['bev']).save(self.save_path / 'bev' / ('%04d.png' % frame))
 
 		outfile = open(self.save_path / 'meta' / ('%04d.json' % frame), 'w')
 		json.dump(self.pid_metadata, outfile, indent=4)
@@ -275,3 +360,111 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 	def destroy(self):
 		del self.net
 		torch.cuda.empty_cache()
+
+	def set_global_plan(self, global_plan_gps, global_plan_world_coord, wp_route):
+		"""
+		Set the plan (route) for the agent
+			used at leaderboard--> route scenario
+
+		global_plan_gps:
+		global_plan_world_coord: route -> ([0] -> waypoint.transform, [1] -> RoadOption)
+		wp_route:  [0] -> waypoint, [1] -> RoadOption
+		"""
+		# waypoints for a road of the map
+		self._global_route = wp_route
+		# same
+		# print("length of the global_plan_world_coord")
+		# print(len(global_plan_world_coord))
+		# print("length of the wp_route")
+		# print(len(wp_route))
+
+		# 50 means Maximum distance between samples
+		# ds_ids record the key waypoints (every 50 waypoints or state change waypoints)
+		ds_ids = downsample_route(global_plan_world_coord, 50)
+		# print("length of the ds_ids")		
+		# print(len(ds_ids))
+		self._global_plan = [global_plan_gps[x] for x in ds_ids]
+
+		self._global_plan_world_coord = [
+			(global_plan_world_coord[x][0], global_plan_world_coord[x][1]) for x in ds_ids]
+
+	def _truncate_global_route_till_local_target(self, windows_size=5):
+		ev_location = self._ego_vehicle.get_location()
+		closest_idx = 0
+		for i in range(len(self._global_route) - 1):
+			if i > windows_size:
+				break
+
+			loc0 = self._global_route[i][0].transform.location
+			loc1 = self._global_route[i + 1][0].transform.location
+
+			wp_dir = loc1 - loc0
+			wp_veh = ev_location - loc0
+			dot_ve_wp = wp_veh.x * wp_dir.x + wp_veh.y * wp_dir.y + wp_veh.z * wp_dir.z
+
+			if dot_ve_wp > 0:
+				closest_idx = i + 1
+		if closest_idx > 0:
+			self._last_route_location = carla.Location(
+				self._global_route[0][0].transform.location)
+
+		self._global_route = self._global_route[closest_idx:]
+
+	def _draw_waypoints(self, world, waypoints, vertical_shift, persistency=-1):
+		"""
+		Draw a list of waypoints at a certain height given in vertical_shift.
+		"""
+		for w in waypoints:
+			wp = w[0].transform.location + carla.Location(z=vertical_shift)
+
+			size = 0.2
+			if w[1] == RoadOption.LEFT:  # Yellow
+				color = carla.Color(255, 255, 0)
+			elif w[1] == RoadOption.RIGHT:  # Cyan
+				color = carla.Color(0, 255, 255)
+			elif w[1] == RoadOption.CHANGELANELEFT:  # Orange
+				color = carla.Color(255, 64, 0)
+			elif w[1] == RoadOption.CHANGELANERIGHT:  # Dark Cyan
+				color = carla.Color(0, 64, 255)
+			elif w[1] == RoadOption.STRAIGHT:  # Gray
+				color = carla.Color(128, 128, 128)
+			else:  # LANEFOLLOW
+				color = carla.Color(0, 255, 0) # Green
+				size = 0.1
+
+			world.debug.draw_point(wp, size=size, color=color, life_time=persistency)
+
+		world.debug.draw_point(waypoints[0][0].transform.location + carla.Location(z=vertical_shift), size=0.2,
+							   color=carla.Color(0, 0, 255), life_time=persistency)
+		world.debug.draw_point(waypoints[-1][0].transform.location + carla.Location(z=vertical_shift), size=0.2,
+							   color=carla.Color(255, 0, 0), life_time=persistency)
+
+def flatten(input_list):
+	result = []
+	for item in input_list:
+		if isinstance(item, list):
+			result.extend(flatten(item))
+		else:
+			result.append(item)
+	return result
+
+def process_actor_info(actor_list, direction):
+	"""
+	Delete farthest vehicles with a list quantity exceeding 3
+	Fill in 0 if the list quantity is less than 3
+	remove keys from dic
+	"""
+	training_list = []
+	if len(actor_list) > 3:
+		sorted_dicts = sorted(actor_list, key=lambda x: x["distance_to_ego"])
+		actor_list = sorted_dicts[:3]
+	if len(actor_list) > 0:
+		for actor in actor_list:
+			distance_to_ego  = actor['distance_to_ego']
+			direction_to_ego = actor['direction_to_ego']
+			speed            = actor['speed']
+			forward_vector   = actor['forward_vector']
+			training_list.append([distance_to_ego, direction_to_ego, speed, forward_vector, direction])
+	training_list = training_list + [[0, 0, 0, 0, 0]] * (3 - len(training_list))
+	return training_list
+

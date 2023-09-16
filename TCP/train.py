@@ -47,7 +47,14 @@ class TCP_planner(pl.LightningModule):
 
 	# traning step  x y = batch
 	def training_step(self, batch, batch_idx):
-		front_img = batch['front_img']
+		is_junction = batch['is_junction']
+		vehicles = batch['vehicles']
+		walkers = batch['walkers']
+		stops = batch['stops']
+		max_speed = batch['maximum_speed']
+		stop_sign = batch['stop_sign']
+		yield_sign = batch['yield_sign']
+		traffic_light_state = batch['traffic_light_state']
 		speed = batch['speed'].to(dtype=torch.float32).view(-1,1) / 12.
 		target_point = batch['target_point'].to(dtype=torch.float32)
 		command = batch['target_command']
@@ -57,8 +64,10 @@ class TCP_planner(pl.LightningModule):
 		feature = batch['feature']
 
 		gt_waypoints = batch['waypoints']
+		waypoints = batch['train_waypoints']
 
-		pred = self.model(front_img, state, target_point)
+		pred = self.model(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
+						  traffic_light_state, state, target_point, waypoints)
 
 		dist_sup = Beta(batch['action_mu'], batch['action_sigma'])
 		dist_pred = Beta(pred['mu_branches'], pred['sigma_branches'])
@@ -97,7 +106,15 @@ class TCP_planner(pl.LightningModule):
 
 	# 
 	def validation_step(self, batch, batch_idx):
-		front_img = batch['front_img']
+		# front_img = batch['front_img']
+		is_junction = batch['is_junction']
+		vehicles = batch['vehicles']
+		walkers = batch['walkers']
+		stops = batch['stops']
+		max_speed = batch['maximum_speed']
+		stop_sign = batch['stop_sign']
+		yield_sign = batch['yield_sign']
+		traffic_light_state = batch['traffic_light_state']
 		speed = batch['speed'].to(dtype=torch.float32).view(-1,1) / 12.
 		target_point = batch['target_point'].to(dtype=torch.float32)
 		command = batch['target_command']
@@ -105,12 +122,14 @@ class TCP_planner(pl.LightningModule):
 		value = batch['value'].view(-1,1)
 		feature = batch['feature']
 		gt_waypoints = batch['waypoints']
+		waypoints = batch['train_waypoints']
 
-		pred = self.model(front_img, state, target_point)
+		pred = self.model(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
+						  traffic_light_state, state, target_point, waypoints)
 		dist_sup = Beta(batch['action_mu'], batch['action_sigma'])
 		dist_pred = Beta(pred['mu_branches'], pred['sigma_branches'])
 		kl_div = torch.distributions.kl_divergence(dist_sup, dist_pred)
-		action_loss = torch.mean(kl_div[:, 0]) *0.5 + torch.mean(kl_div[:, 1]) *0.5
+		action_loss = torch.mean(kl_div[:, 0]) * 0.5 + torch.mean(kl_div[:, 1]) * 0.5
 		speed_loss = F.l1_loss(pred['pred_speed'], speed) * self.config.speed_weight
 		value_loss = (F.mse_loss(pred['pred_value_traj'], value) + F.mse_loss(pred['pred_value_ctrl'], value)) * self.config.value_weight
 		feature_loss = (F.mse_loss(pred['pred_features_traj'], feature) +F.mse_loss(pred['pred_features_ctrl'], feature))* self.config.features_weight
@@ -164,7 +183,7 @@ if __name__ == "__main__":
 	# parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 	parser.add_argument('--batch_size', type=int, default=8, help='Batch size')
 	
-	parser.add_argument('--logdir', type=str, default='log', help='Directory to log data to.')
+	parser.add_argument('--logdir', type=str, default='log/TCP_02', help='Directory to log data to.')
 	parser.add_argument('--gpus', type=int, default=1, help='number of gpus')
 
 	args = parser.parse_args()
@@ -188,9 +207,9 @@ if __name__ == "__main__":
 	print(len(val_set))
  
 
-	dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=8)
+	dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
-	dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=8)
+	dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=0)
 
 	# initialize the model and data
 	TCP_model = TCP_planner(config, args.lr)
@@ -198,7 +217,7 @@ if __name__ == "__main__":
 	checkpoint_callback = ModelCheckpoint(save_weights_only=False, mode="min", monitor="val_loss", save_top_k=2, save_last=True,
 											dirpath=args.logdir, filename="best_{epoch:02d}-{val_loss:.3f}")
 	checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"
-	
+
 	# create Trainer Object and training
 	trainer = pl.Trainer.from_argparse_args(args,
 											default_root_dir=args.logdir,
@@ -224,8 +243,6 @@ if __name__ == "__main__":
 
 
 
-
-		
 
 
 

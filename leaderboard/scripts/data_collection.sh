@@ -1,11 +1,6 @@
-# !/bin/bash
+#!/bin/bash
 
-
-# export PATH_TO_CARLA=$PATH_TO_CARLA/home/ubuntu2204/carla
-# echo "$PATH_TO_CARLA"
-# exit
-# export CARLA_ROOT= PATH_TO_CARLA
-export CARLA_ROOT= PATH_TO_CARLA
+export CARLA_ROOT=/home/wyz/CARLA_0.9.10
 export CARLA_SERVER=${CARLA_ROOT}/CarlaUE4.sh
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI/carla
@@ -25,41 +20,54 @@ export DATA_COLLECTION=True
 
 
 # Roach data collection
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town02.xml
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town03.xml
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town04.xml
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town10.xml
+
+
+
+
 
 # export TEAM_AGENT=team_code/roach_ap_agent.py
 export TEAM_AGENT=team_code/roach_ap_noimg_agent.py
 
 
 export TEAM_CONFIG=roach/config/config_agent.yaml
-# export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
-# export CHECKPOINT_ENDPOINT=data_collect_town02_results.json
-# export CHECKPOINT_ENDPOINT=data_collect_town03_results.json
-# export CHECKPOINT_ENDPOINT=data_collect_town04_results.json
+
+
 export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 
-# export SAVE_PATH=data/data_collect_town01_results/
+
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town01_val.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town01_addition.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town02.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town03.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town03_val.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town03_addition.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town04.xml
+export ROUTES=leaderboard/data/TCP_training_routes/routes_town04_val.xml
+
+#export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town01_val_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town01_addition_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town02_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town02_val_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town03_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town03_val_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town03_addition_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town04_results.json
+export CHECKPOINT_ENDPOINT=data_collect_town04_val_results.json
 
 
-
-export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
-# export ROUTES=leaderboard/data/TCP_training_routes/routes_town01_addition.xml
-
-# export CHECKPOINT_ENDPOINT=data_collect_town02_val_results.json
-# export CHECKPOINT_ENDPOINT=data_collect_town01_addition_results.json
-export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
-
-# export SAVE_PATH=data/data_collect_town02_results/
-# export SAVE_PATH=data/town02_val/
-# export SAVE_PATH=data/town01_addition/ 
-export SAVE_PATH=data/town01/ 
-
+#export SAVE_PATH=data/town01/
+#export SAVE_PATH=data/town01_val/
+#export SAVE_PATH=data/town01_addition/
+#export SAVE_PATH=data/town02/
+#export SAVE_PATH=data/town02_val/
+#export SAVE_PATH=data/town03/
+#export SAVE_PATH=data/town03_val/
+#export SAVE_PATH=data/town03_addition/
+#export SAVE_PATH=data/town04/
+export SAVE_PATH=data/town04_val/
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --scenarios=${SCENARIOS}  \
 --routes=${ROUTES} \
@@ -73,4 +81,3 @@ python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --resume=${RESUME} \
 --port=${PORT} \
 --trafficManagerPort=${TM_PORT}\
-# >> output.log

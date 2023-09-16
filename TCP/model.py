@@ -38,7 +38,7 @@ class TCP(nn.Module):
 		self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
 		self.speed_controller = PIDController(K_P=config.speed_KP, K_I=config.speed_KI, K_D=config.speed_KD, n=config.speed_n)
 
-		self.perception = resnet34(pretrained=True)
+		# self.perception = resnet34(pretrained=True)
 
 		# using sequential to expressing a neutral network
 		self.measurements = nn.Sequential(
@@ -115,17 +115,29 @@ class TCP(nn.Module):
 		self.decoder_traj = nn.GRUCell(input_size=4, hidden_size=256)
 		self.output_traj = nn.Linear(256, 2)
 
+		# self.init_att = nn.Sequential(
+		# 		nn.Linear(128, 256),
+		# 		nn.ReLU(inplace=True),
+		# 		nn.Linear(256, 29*8),
+		# 		nn.Softmax(1)
+		# 	)
 		self.init_att = nn.Sequential(
 				nn.Linear(128, 256),
 				nn.ReLU(inplace=True),
-				nn.Linear(256, 29*8),
+				nn.Linear(256, 512),
 				nn.Softmax(1)
 			)
 
+		# self.wp_att = nn.Sequential(
+		# 		nn.Linear(256+256, 256),
+		# 		nn.ReLU(inplace=True),
+		# 		nn.Linear(256, 29*8),
+		# 		nn.Softmax(1)
+		# 	)
 		self.wp_att = nn.Sequential(
 				nn.Linear(256+256, 256),
 				nn.ReLU(inplace=True),
-				nn.Linear(256, 29*8),
+				nn.Linear(256, 512),
 				nn.Softmax(1)
 			)
 
@@ -134,10 +146,45 @@ class TCP(nn.Module):
 				nn.ReLU(inplace=True),
 				nn.Linear(512, 256),
 			)
+
+		self.MLP = nn.Sequential(
+			nn.Linear(512, 1024),
+			nn.ReLU(inplace=True),
+			nn.Linear(1024,1024),
+			nn.ReLU(inplace=True),
+			nn.Linear(1024, 1000)
+		)
+
+		self.is_junction_emb = nn.Linear(1, 32, bias=False)
+		self.vehicles_emb = nn.Linear(45, 128, bias=False)
+		self.walkers_emb = nn.Linear(45, 128, bias=False)
+		self.stops_emb = nn.Linear(3, 64, bias=False)
+		self.max_speed_emb = nn.Linear(1, 32, bias=False)
+		self.stop_sign_emb = nn.Linear(1, 32, bias=False)
+		self.yield_sign_emb = nn.Linear(1, 32, bias=False)
+		self.traffic_light_state = nn.Linear(4, 64, bias=False)
+
+		self.env_feature = nn.Linear(1000, 512)
+
 		
 	#nn caculate 
-	def forward(self, img, state, target_point):
-		feature_emb, cnn_feature = self.perception(img)
+	def forward(self, is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
+				traffic_light_state, state, target_point):
+		# feature_emb, cnn_feature = self.perception(img)
+		is_junction_emb = self.is_junction_emb(is_junction)
+		vehicles_emb = self.vehicles_emb(vehicles)
+		walkers_emb = self.walkers_emb(walkers)
+		stops_emb = self.stops_emb(stops)
+		max_speed_emb = self.max_speed_emb(max_speed)
+		stop_sign_emb = self.stop_sign_emb(stop_sign)
+		yield_sign_emb = self.yield_sign_emb(yield_sign)
+		traffic_light_state = self.traffic_light_state(traffic_light_state)
+
+
+
+		cat_emb_feature = torch.cat((is_junction_emb, vehicles_emb, walkers_emb, stops_emb, max_speed_emb,
+									 stop_sign_emb, yield_sign_emb, traffic_light_state), dim=1)
+		feature_emb = self.MLP(cat_emb_feature)
 		outputs = {}
 		outputs['pred_speed'] = self.speed_branch(feature_emb)
 		measurement_feature = self.measurements(state)
@@ -165,8 +212,10 @@ class TCP(nn.Module):
 		outputs['pred_wp'] = pred_wp
 
 		traj_hidden_state = torch.stack(traj_hidden_state, dim=1)
-		init_att = self.init_att(measurement_feature).view(-1, 1, 8, 29)
-		feature_emb = torch.sum(cnn_feature*init_att, dim=(2, 3))
+		init_att = self.init_att(measurement_feature)
+		# feature_emb = torch.sum(cnn_feature*init_att, dim=(2, 3))
+		env_feature = self.env_feature(feature_emb)
+		feature_emb = init_att * env_feature
 		j_ctrl = self.join_ctrl(torch.cat([feature_emb, measurement_feature], 1))
 		outputs['pred_value_ctrl'] = self.value_branch_ctrl(j_ctrl)
 		outputs['pred_features_ctrl'] = j_ctrl
@@ -185,8 +234,9 @@ class TCP(nn.Module):
 		for _ in range(self.config.pred_len):
 			x_in = torch.cat([x, mu, sigma], dim=1)
 			h = self.decoder_ctrl(x_in, h)
-			wp_att = self.wp_att(torch.cat([h, traj_hidden_state[:, _]], 1)).view(-1, 1, 8, 29)
-			new_feature_emb = torch.sum(cnn_feature*wp_att, dim=(2, 3))
+			# wp_att = self.wp_att(torch.cat([h, traj_hidden_state[:, _]], 1)).view(-1, 1, 8, 29)
+			wp_att = self.wp_att(torch.cat([h, traj_hidden_state[:, _]], 1))
+			new_feature_emb = env_feature * wp_att
 			merged_feature = self.merge(torch.cat([h, new_feature_emb], 1))
 			dx = self.output_ctrl(merged_feature)
 			x = dx + x
