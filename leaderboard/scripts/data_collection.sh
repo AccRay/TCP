@@ -40,22 +40,22 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town01_addition.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town02.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
-#export ROUTES=leaderboard/data/TCP_training_routes/routes_town03.xml
+export ROUTES=leaderboard/data/TCP_training_routes/routes_town03.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town03_val.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town03_addition.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town04.xml
-export ROUTES=leaderboard/data/TCP_training_routes/routes_town04_val.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town04_val.xml
 
 #export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town01_val_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town01_addition_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town02_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town02_val_results.json
-#export CHECKPOINT_ENDPOINT=data_collect_town03_results.json
+export CHECKPOINT_ENDPOINT=data_collect_town03_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town03_val_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town03_addition_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town04_results.json
-export CHECKPOINT_ENDPOINT=data_collect_town04_val_results.json
+#export CHECKPOINT_ENDPOINT=data_collect_town04_val_results.json
 
 
 #export SAVE_PATH=data/town01/
@@ -63,11 +63,11 @@ export CHECKPOINT_ENDPOINT=data_collect_town04_val_results.json
 #export SAVE_PATH=data/town01_addition/
 #export SAVE_PATH=data/town02/
 #export SAVE_PATH=data/town02_val/
-#export SAVE_PATH=data/town03/
+export SAVE_PATH=data/town03/
 #export SAVE_PATH=data/town03_val/
 #export SAVE_PATH=data/town03_addition/
 #export SAVE_PATH=data/town04/
-export SAVE_PATH=data/town04_val/
+#export SAVE_PATH=data/town04_val/
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --scenarios=${SCENARIOS}  \
 --routes=${ROUTES} \

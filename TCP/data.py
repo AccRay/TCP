@@ -142,7 +142,9 @@ class CARLA_Data(Dataset):
 		data['maximum_speed']       = torch.tensor([int(item) for item in self.maximum_speed[index]], dtype=torch.float32)
 		data['stop_sign']           = torch.tensor(self.stop_sign[index], dtype=torch.float32)
 		data['yield_sign']          = torch.tensor(self.yield_sign[index], dtype=torch.float32)
-		data['wp'] = torch.squeeze(torch.tensor(self.wp[index], dtype=torch.float32), dim=0)
+		wp = torch.squeeze(torch.tensor(self.wp[index], dtype=torch.float32), dim=0)
+		data['wp'] = wp[:, 0:2].reshape(-1)
+
 
 		data['waypoints'] = np.array(waypoints)
 

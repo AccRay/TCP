@@ -532,9 +532,10 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 				wp_end.append([wp.x, wp.y, wp.z])
 			while len(wp_end) < 16:
 				wp_end.append([wp.x, wp.y, wp.z])
-			print(wp_end)
 
-		print(len(self._global_route))
+		# 	print(wp_end)
+		#
+		# print(len(self._global_route))
 
 
 

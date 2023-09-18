@@ -13,14 +13,15 @@ export CHALLENGE_TRACK_CODENAME=SENSORS
 export PORT=2000
 export TM_PORT=8000
 export DEBUG_CHALLENGE=0
-export REPETITIONS=3 # multiple evaluation runs
+export REPETITIONS=1 # multiple evaluation runs
 export RESUME=True
 
 
 # TCP evaluation
-export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid.xml
+#export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid.xml
+export ROUTES=leaderboard/data/TCP_training_routes/routes_town01_addition.xml
 export TEAM_AGENT=team_code/tcp_agent.py
-export TEAM_CONFIG=/home/wyz/TCP/log/TCP_01/epoch=59-last.ckpt
+export TEAM_CONFIG=/home/wyz/TCP/log/TCP_03/epoch=59-last.ckpt
 export CHECKPOINT_ENDPOINT=results_TCP.json
 export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 export SAVE_PATH=data/results_TCP/

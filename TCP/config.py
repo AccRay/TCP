@@ -8,12 +8,12 @@ class GlobalConfig:
 
 	# data root
 	# root_dir_all = "tcp_carla_data"
-	root_dir_all = "/home/wyz/TCP/data"
+	root_dir_all = "/home/wangyuze/TCP-TCP_0911/data"
 
 	# train_towns = ['town01', 'town03', 'town04',  'town06', ]
 	# val_towns = ['town02', 'town05', 'town07', 'town10']
-	train_towns = ['town04']
-	val_towns = ['town04']
+	train_towns = ['town01']
+	val_towns = ['town01']
 	# val_towns = ['town01_addition']
 	
 	train_data, val_data = [], [] 
