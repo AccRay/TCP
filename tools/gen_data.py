@@ -70,6 +70,9 @@ def gen_single_route(route_folder):
 	seq_input_stop_sign           = []
 	seq_input_yield_sign          = []
 
+	seq_input_wp = []
+	full_seq_wp = []
+
 
 
 
@@ -174,6 +177,7 @@ def gen_single_route(route_folder):
 		full_seq_maximum_speed.append(surroundings['MaximumSpeed'])
 		full_seq_stop_sign.append(surroundings['StopSign'])
 		full_seq_yield_sign.append(surroundings['YieldSign'])
+		full_seq_wp.append(surroundings['wp'])
 	# todo 
 	# max vehicles(left 3, right 3, mid 3)
 	# 
@@ -217,6 +221,8 @@ def gen_single_route(route_folder):
 		seq_input_maximum_speed.append(full_seq_maximum_speed[i-(INPUT_FRAMES-1):i+1])
 		seq_input_stop_sign.append(full_seq_stop_sign[i-(INPUT_FRAMES-1):i+1])
 		seq_input_yield_sign.append(full_seq_yield_sign[i-(INPUT_FRAMES-1):i+1])
+		seq_input_wp.append(full_seq_wp[i-(INPUT_FRAMES-1):i+1])
+
 
 
 		# i+1 - i+5
@@ -252,7 +258,7 @@ def gen_single_route(route_folder):
 
 		seq_only_ap_brake.append(roach_supervision_data["only_ap_brake"])
 
-	return seq_future_x, seq_future_y, seq_future_theta, seq_future_feature, seq_future_action, seq_future_action_mu, seq_future_action_sigma, seq_future_only_ap_brake, seq_input_x, seq_input_y, seq_input_theta, seq_feature, seq_value, seq_speed, seq_action, seq_action_mu, seq_action_sigma, seq_x_target, seq_y_target, seq_target_command, seq_only_ap_brake, seq_input_is_junction, seq_input_traffic_light_state, seq_input_vehicles, seq_input_walkers, seq_input_stops, seq_input_maximum_speed, seq_input_stop_sign, seq_input_yield_sign
+	return seq_future_x, seq_future_y, seq_future_theta, seq_future_feature, seq_future_action, seq_future_action_mu, seq_future_action_sigma, seq_future_only_ap_brake, seq_input_x, seq_input_y, seq_input_theta, seq_feature, seq_value, seq_speed, seq_action, seq_action_mu, seq_action_sigma, seq_x_target, seq_y_target, seq_target_command, seq_only_ap_brake, seq_input_is_junction, seq_input_traffic_light_state, seq_input_vehicles, seq_input_walkers, seq_input_stops, seq_input_maximum_speed, seq_input_stop_sign, seq_input_yield_sign, seq_input_wp
 
 
 
@@ -297,6 +303,7 @@ def gen_sub_folder(folder_path):
 	total_input_maximum_speed       = []
 	total_input_stop_sign           = []
 	total_input_yield_sign          = []
+	total_input_wp = []
 
 
 
@@ -304,7 +311,7 @@ def gen_sub_folder(folder_path):
 		seq_data = gen_single_route(os.path.join(folder_path, route))
 		if not seq_data:
 			continue
-		seq_future_x, seq_future_y, seq_future_theta, seq_future_feature, seq_future_action, seq_future_action_mu, seq_future_action_sigma, seq_future_only_ap_brake, seq_input_x, seq_input_y, seq_input_theta, seq_feature, seq_value, seq_speed, seq_action, seq_action_mu, seq_action_sigma, seq_x_target, seq_y_target, seq_target_command, seq_only_ap_brake, seq_input_is_junction, seq_input_traffic_light_state, seq_input_vehicles, seq_input_walkers, seq_input_stops, seq_input_maximum_speed, seq_input_stop_sign, seq_input_yield_sign = seq_data
+		seq_future_x, seq_future_y, seq_future_theta, seq_future_feature, seq_future_action, seq_future_action_mu, seq_future_action_sigma, seq_future_only_ap_brake, seq_input_x, seq_input_y, seq_input_theta, seq_feature, seq_value, seq_speed, seq_action, seq_action_mu, seq_action_sigma, seq_x_target, seq_y_target, seq_target_command, seq_only_ap_brake, seq_input_is_junction, seq_input_traffic_light_state, seq_input_vehicles, seq_input_walkers, seq_input_stops, seq_input_maximum_speed, seq_input_stop_sign, seq_input_yield_sign, seq_input_wp = seq_data
 		
 		total_future_x.extend(seq_future_x)
 		total_future_y.extend(seq_future_y)
@@ -326,6 +333,8 @@ def gen_sub_folder(folder_path):
 		total_input_maximum_speed.extend(seq_input_maximum_speed)
 		total_input_stop_sign.extend(seq_input_stop_sign)
 		total_input_yield_sign.extend(seq_input_yield_sign)
+		total_input_wp.extend(seq_input_wp)
+
 
 
 		# total_front_img.extend(seq_front_img)
@@ -362,6 +371,7 @@ def gen_sub_folder(folder_path):
 	data_dict['input_maximum_speed'] = total_input_maximum_speed
 	data_dict['input_stop_sign'] = total_input_stop_sign
 	data_dict['input_yield_sign'] = total_input_yield_sign
+	data_dict['wp'] = total_input_wp
 
 
 	data_dict['feature'] = total_feature
@@ -386,13 +396,7 @@ if __name__ == '__main__':
 	data_path = "/home/wyz/TCP/data"
 	# towns = ["town01","town01_val","town01_addition","town02","town02_val","town03","town03_val","town03_addition", "town04","town04_val", "town04_addition", "town05", "town05_val", "town05_addition" ,"town06","town06_val", "town06_addition","town07", "town07_val", "town10", "town10_addition","town10_val"]
 	# towns = ["town01", "town01_addition"]
-<<<<<<< Updated upstream
-	towns = ["town03_val", "town03_addition"]
-=======
-	towns = ["town10_addition"]
-	towns = ["town07", "town07_val"]
-	towns = ["town04_addition","town04_val"]
->>>>>>> Stashed changes
+	towns = ["town04_val"]
 	pattern = "{}" # town type
 	import tqdm
 	total = 0

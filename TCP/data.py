@@ -58,6 +58,7 @@ class CARLA_Data(Dataset):
 		self.maximum_speed       = []
 		self.stop_sign           = []
 		self.yield_sign          = []
+		self.wp = []
 
  
 		for sub_root in data_folders:
@@ -99,6 +100,7 @@ class CARLA_Data(Dataset):
 			self.maximum_speed       += data['input_maximum_speed']
 			self.stop_sign           += data['input_stop_sign']
 			self.yield_sign          += data['input_yield_sign']
+			self.wp += data['wp']
       
 
 
@@ -140,6 +142,7 @@ class CARLA_Data(Dataset):
 		data['maximum_speed']       = torch.tensor([int(item) for item in self.maximum_speed[index]], dtype=torch.float32)
 		data['stop_sign']           = torch.tensor(self.stop_sign[index], dtype=torch.float32)
 		data['yield_sign']          = torch.tensor(self.yield_sign[index], dtype=torch.float32)
+		data['wp'] = torch.squeeze(torch.tensor(self.wp[index], dtype=torch.float32), dim=0)
 
 		data['waypoints'] = np.array(waypoints)
 

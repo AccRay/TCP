@@ -518,19 +518,24 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		traffic_light_state, light_loc, light_id = TrafficLightHandler.get_light_state(self._ego_vehicle)
 
 		ev_location = self._ego_vehicle.get_location()
+		wp_end = []
 		if(len(self._global_route) >= 16):
 			waypoints = self._global_route[0:16]
-			wp = []
+
 			for waypoint in waypoints:
-				wp.append(waypoint.transform.location - ev_location)
+				wp = waypoint[0].transform.location - ev_location
+				wp_end.append([wp.x, wp.y, wp.z])
 		else:
 			waypoints = self._global_route[0:len(self._global_route)]
-			wp = []
 			for waypoint in waypoints:
-				wp.append(waypoint.transform.location - ev_location)
-			temp = [[-1 for i in range(2)]for i in range(16)][0:len(self._global_route)]
-			wp = temp[0:len(self._global_route)] + wp
-		print(wp)
+				wp = waypoint[0].transform.location - ev_location
+				wp_end.append([wp.x, wp.y, wp.z])
+			while len(wp_end) < 16:
+				wp_end.append([wp.x, wp.y, wp.z])
+			print(wp_end)
+
+		print(len(self._global_route))
+
 
 
 
@@ -539,6 +544,8 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 			'is_junction': 1 if ego_vehicle_waypoint.is_junction else 0,
 			# 'is_at_traffic_light': self._ego_vehicle.is_at_traffic_light(),
 			'traffic_light_state': TRAFFIC_LIGHT_STATE[str(traffic_light_state)], # 0, 1, 2, 3 None, Red, Green, Yellow
+			'wp': wp_end,
+
 			# 'traffic_sign':1,
 			# 'waypoints':1,
 			# 'intersection': True, # False
