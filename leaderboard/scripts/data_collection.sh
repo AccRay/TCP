@@ -35,6 +35,7 @@ export TEAM_CONFIG=roach/config/config_agent.yaml
 export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 
 
+<<<<<<< HEAD
 
 export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
@@ -49,7 +50,6 @@ export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town06.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town06_val.xml
 # export ROUTES=leaderboard/data/TCP_training_routes/routes_town04_addition.xml
-
 
 # export CHECKPOINT_ENDPOINT=data_collect_town02_val_results.json
 # export CHECKPOINT_ENDPOINT=data_collect_town01_addition_results.json
@@ -87,7 +87,11 @@ export SAVE_PATH=data/town01/
 #export SAVE_PATH=data/town03_val/
 #export SAVE_PATH=data/town03_addition/
 #export SAVE_PATH=data/town04/
+<<<<<<< HEAD
 # export SAVE_PATH=data/town04_val/
+=======
+#export SAVE_PATH=data/town04_val/
+>>>>>>> TCP0911
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --scenarios=${SCENARIOS}  \
 --routes=${ROUTES} \

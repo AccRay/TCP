@@ -155,21 +155,22 @@ class TCP(nn.Module):
 			nn.Linear(1024, 1000)
 		)
 
-		self.is_junction_emb = nn.Linear(1, 32, bias=False)
+		self.is_junction_emb = nn.Linear(1, 16, bias=False)
 		self.vehicles_emb = nn.Linear(45, 128, bias=False)
 		self.walkers_emb = nn.Linear(45, 128, bias=False)
-		self.stops_emb = nn.Linear(3, 64, bias=False)
-		self.max_speed_emb = nn.Linear(1, 32, bias=False)
-		self.stop_sign_emb = nn.Linear(1, 32, bias=False)
-		self.yield_sign_emb = nn.Linear(1, 32, bias=False)
-		self.traffic_light_state = nn.Linear(4, 64, bias=False)
+		self.stops_emb = nn.Linear(3, 32, bias=False)
+		self.max_speed_emb = nn.Linear(1, 16, bias=False)
+		self.stop_sign_emb = nn.Linear(1, 16, bias=False)
+		self.yield_sign_emb = nn.Linear(1, 16, bias=False)
+		self.traffic_light_state = nn.Linear(4, 32, bias=False)
+		self.waypoint_emb = nn.Linear(32, 128, bias=False)
 
 		self.env_feature = nn.Linear(1000, 512)
 
 		
 	#nn caculate 
 	def forward(self, is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
-				traffic_light_state, state, target_point):
+				traffic_light_state, state, target_point, waypoints):
 		# feature_emb, cnn_feature = self.perception(img)
 		is_junction_emb = self.is_junction_emb(is_junction)
 		vehicles_emb = self.vehicles_emb(vehicles)
@@ -179,11 +180,12 @@ class TCP(nn.Module):
 		stop_sign_emb = self.stop_sign_emb(stop_sign)
 		yield_sign_emb = self.yield_sign_emb(yield_sign)
 		traffic_light_state = self.traffic_light_state(traffic_light_state)
+		waypoints_emb = self.waypoint_emb(waypoints)
 
 
 
 		cat_emb_feature = torch.cat((is_junction_emb, vehicles_emb, walkers_emb, stops_emb, max_speed_emb,
-									 stop_sign_emb, yield_sign_emb, traffic_light_state), dim=1)
+									 stop_sign_emb, yield_sign_emb, traffic_light_state, waypoints_emb), dim=1)
 		feature_emb = self.MLP(cat_emb_feature)
 		outputs = {}
 		outputs['pred_speed'] = self.speed_branch(feature_emb)

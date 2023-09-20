@@ -26,24 +26,23 @@ if __name__ == '__main__':
 	routes_type = ["short"]
 	# towns = ["town05", "town06","town07", "town10"]
 	# towns = ["town01_addition", "town02_val"]
-<<<<<<< Updated upstream
+
 	towns = ["town03_val", "town03_addition"]
-=======
+
 	# towns = ["town05"]
 	# towns = ["town10"]
 	towns = ["town10_addition"]
 	towns = ["town07","town07_val"]
 	towns = ["town04_addition","town04_val"]
 	# towns = ["town01"]
->>>>>>> Stashed changes
 
 	# result_path = ""
-	result_path = "/home/wyz/TCP"
+	result_path = "/home/wangyuze/TCP-TCP_0911"
 	result_pattern = "data_collect_{}_results.json" # town
 	# result_pattern = "{}_results_02.json" # town
 
 	# data_path = ""
-	data_path = "/home/wyz/TCP/data"
+	data_path = "/home/wangyuze/TCP-TCP_0911/data"
 	# data_pattern = "{}_{}" # town, type
 	# data_pattern = "data_collect_{}_results" # town, type
 	data_pattern = "{}" # town, type

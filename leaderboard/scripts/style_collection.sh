@@ -1,4 +1,5 @@
 #!/bin/bash
+
 export CARLA_ROOT=/home/wyz/CARLA_0.9.10
 export CARLA_SERVER=${CARLA_ROOT}/CarlaUE4.sh
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI
@@ -15,16 +16,33 @@ export TM_PORT=8000
 export DEBUG_CHALLENGE=0
 export REPETITIONS=1 # multiple evaluation runs
 export RESUME=True
+export DATA_COLLECTION=True
 
 
-# TCP evaluation
-#export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid.xml
-export ROUTES=leaderboard/data/TCP_training_routes/routes_town01_addition.xml
-export TEAM_AGENT=team_code/tcp_agent.py
-export TEAM_CONFIG=/home/wyz/TCP/log/TCP_03/epoch=59-last.ckpt
-export CHECKPOINT_ENDPOINT=results_TCP.json
+# Roach data collection
+
+
+
+
+
+export TEAM_AGENT=team_code/basic_agent.py
+
+
+export TEAM_CONFIG=roach/config/config_agent.yaml
+
+
 export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
-export SAVE_PATH=data/results_TCP/
+
+
+
+
+export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+
+
+export CHECKPOINT_ENDPOINT=results_aggressive_data_collect_town01_results.json
+
+
+export SAVE_PATH=data_aggressive/town01/
 
 
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
@@ -39,6 +57,4 @@ python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --record=${RECORD_PATH} \
 --resume=${RESUME} \
 --port=${PORT} \
---trafficManagerPort=${TM_PORT}
-
-
+--trafficManagerPort=${TM_PORT}\

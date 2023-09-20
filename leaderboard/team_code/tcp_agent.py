@@ -219,10 +219,26 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		if not self.initialized:
 			self._init()
 
+		ev_location = self._ego_vehicle.get_location()
+		wp_end = []
+		if (len(self._global_route) >= 16):
+			waypoints = self._global_route[0:16]
 
+			for waypoint in waypoints:
+				wp = waypoint[0].transform.location - ev_location
+				wp_end.append([wp.x, wp.y, wp.z])
+		else:
+			waypoints = self._global_route[0:len(self._global_route)]
+			for waypoint in waypoints:
+				wp = waypoint[0].transform.location - ev_location
+				wp_end.append([wp.x, wp.y, wp.z])
+			while len(wp_end) < 16:
+				wp_end.append([wp.x, wp.y, wp.z])
+
+		wp_temp = torch.tensor(wp_end, dtype=torch.float32)
+		waypoints_end = wp_temp[:, 0:2].reshape(-1).view(1, -1).to('cuda')
 
 		tick_data, surroundings_info = self.tick(input_data)
-		pos = self._get_position(tick_data)
 
 		surroundings_left_vehicles = process_actor_info(surroundings_info['left_vehicles'], 1)
 		surroundings_mid_vehicles = process_actor_info(surroundings_info['mid_vehicles'], 2)
@@ -235,8 +251,6 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		walkers_temp = surroundings_left_walkers + surroundings_mid_walkers + surroundings_right_walkers
 		is_junction_temp = 1 if ego_vehicle_waypoint.is_junction else 0
 		traffic_light_state_temp, light_loc, light_id = TrafficLightHandler.get_light_state(self._ego_vehicle)
-
-
 
 		traffic_light_state = TRAFFIC_LIGHT_STATE[str(traffic_light_state_temp)]
 		is_junction = torch.tensor(is_junction_temp, dtype=torch.float32).view(1, 1).to('cuda')
@@ -287,7 +301,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		state = torch.cat([speed, target_point, cmd_one_hot], 1)
 
 		pred = self.net(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
-				traffic_light_state_end, state, target_point)
+				traffic_light_state_end, state, target_point, waypoints_end)
 
 		steer_ctrl, throttle_ctrl, brake_ctrl, metadata = self.net.process_action(pred, tick_data['next_command'], gt_velocity, target_point)
 
@@ -311,7 +325,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 			control.steer = np.clip(self.alpha*steer_traj + (1-self.alpha)*steer_ctrl, -1, 1)
 			control.throttle = np.clip(self.alpha*throttle_traj + (1-self.alpha)*throttle_ctrl, 0, 0.75)
 			control.brake = np.clip(self.alpha*brake_traj + (1-self.alpha)*brake_ctrl, 0, 1)
-		print(control.steer, control.throttle, control.brake)
+
 
 
 		self.pid_metadata['steer_ctrl'] = float(steer_ctrl)
@@ -344,6 +358,12 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 
 		if SAVE_PATH is not None and self.step % 10 == 0:
 			self.save(tick_data)
+
+		if traffic_light_state == 2:
+			control.throttle = 0.6
+			control.brake = 0
+
+		print(control.steer, control.throttle, control.brake, traffic_light_state_temp)
 		return control
 
 	def save(self, tick_data):

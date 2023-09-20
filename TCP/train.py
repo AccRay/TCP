@@ -64,7 +64,7 @@ class TCP_planner(pl.LightningModule):
 		feature = batch['feature']
 
 		gt_waypoints = batch['waypoints']
-		waypoints = batch['train_waypoints']
+		waypoints = batch['wp']
 
 		pred = self.model(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
 						  traffic_light_state, state, target_point, waypoints)
@@ -122,7 +122,7 @@ class TCP_planner(pl.LightningModule):
 		value = batch['value'].view(-1,1)
 		feature = batch['feature']
 		gt_waypoints = batch['waypoints']
-		waypoints = batch['train_waypoints']
+		waypoints = batch['wp']
 
 		pred = self.model(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
 						  traffic_light_state, state, target_point, waypoints)
@@ -200,50 +200,50 @@ if __name__ == "__main__":
 	# print(config.root_dir_all)
 	# print(config.val_data)
 	# exit()
-	# train_set = CARLA_Data(root=config.root_dir_all, data_folders=config.train_data, img_aug = config.img_aug)
-	# print(len(train_set))
+	train_set = CARLA_Data(root=config.root_dir_all, data_folders=config.train_data, img_aug = config.img_aug)
+	print(len(train_set))
 	
 	val_set = CARLA_Data(root=config.root_dir_all, data_folders=config.val_data,)
 	print(len(val_set))
 
 
-	# dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0)
+	dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
 	dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=0)
 
 	# initialize the model and data
-	# TCP_model = TCP_planner(config, args.lr)
-	#
-	# checkpoint_callback = ModelCheckpoint(save_weights_only=False, mode="min", monitor="val_loss", save_top_k=2, save_last=True,
-	# 										dirpath=args.logdir, filename="best_{epoch:02d}-{val_loss:.3f}")
-	# checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"
-	#
-	# # create Trainer Object and training
-	# trainer = pl.Trainer.from_argparse_args(args,
-	# 										default_root_dir=args.logdir,
-	# 										gpus = args.gpus,
-	#
-	# 										auto_select_gpus = True,
-	#
-	# 										accelerator='ddp',
-	# 										sync_batchnorm=True,
-	# 										plugins=DDPPlugin(find_unused_parameters=False),
-	# 										profiler='simple',
-	# 										benchmark=True,
-	# 										log_every_n_steps=1,
-	# 										flush_logs_every_n_steps=5,
-	# 										callbacks=[checkpoint_callback,
-	# 													],
-	# 										check_val_every_n_epoch = args.val_every,
-	# 										max_epochs = args.epochs
-	# 										)
-	#
-	# # the result saved at Trainer's logger
-	# trainer.fit(TCP_model, dataloader_train, dataloader_val)
-	#
-	#
-	#
-	#
-	# 
-	#
-	#
+	TCP_model = TCP_planner(config, args.lr)
+
+	checkpoint_callback = ModelCheckpoint(save_weights_only=False, mode="min", monitor="val_loss", save_top_k=2, save_last=True,
+											dirpath=args.logdir, filename="best_{epoch:02d}-{val_loss:.3f}")
+	checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"
+
+	# create Trainer Object and training
+	trainer = pl.Trainer.from_argparse_args(args,
+											default_root_dir=args.logdir,
+											gpus = args.gpus,
+
+											auto_select_gpus = True,
+
+											accelerator='ddp',
+											sync_batchnorm=True,
+											plugins=DDPPlugin(find_unused_parameters=False),
+											profiler='simple',
+											benchmark=True,
+											log_every_n_steps=1,
+											flush_logs_every_n_steps=5,
+											callbacks=[checkpoint_callback,
+														],
+											check_val_every_n_epoch = args.val_every,
+											max_epochs = args.epochs
+											)
+
+	# the result saved at Trainer's logger
+	trainer.fit(TCP_model, dataloader_train, dataloader_val)
+
+
+
+
+
+
+
