@@ -145,6 +145,15 @@ def calculate_speed_magnitue(actor):
     speed = speed ** 0.5
     return speed
 
+def calculate_acceleration_magnitue(actor):
+    '''
+    m/s2
+    '''
+    acceleration = actor.get_acceleration()
+    acc = acceleration.x**2 + acceleration.y**2 + acceleration.z**2
+    acc = acc ** 0.5
+    return acc
+
 def get_lane_center(map, location):
     """Project current loction to its lane center, return lane center waypoint"""
 

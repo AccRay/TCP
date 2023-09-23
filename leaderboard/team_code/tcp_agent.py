@@ -4,7 +4,6 @@ import datetime
 import pathlib
 import time
 import cv2
-import carla
 from collections import deque
 import math
 from collections import OrderedDict
@@ -12,9 +11,7 @@ from collections import OrderedDict
 import torch
 import carla
 import numpy as np
-from PIL import Image
 from torchvision import transforms as T
-
 from leaderboard.autoagents import autonomous_agent
 
 from TCP.model import TCP
@@ -23,7 +20,7 @@ from team_code.planner import RoutePlanner
 from leaderboard.utils.route_manipulation import downsample_route
 
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
-from roach.obs_manager.birdview.chauffeurnet_noimg import ObsManager
+from roach.obs_manager.birdview.tcp_noming import ObsManager
 from roach.utils.traffic_light import TrafficLightHandler
 from omegaconf import OmegaConf
 from roach.criteria import run_stop_sign
@@ -57,6 +54,11 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 
 		self.config_path = path_to_conf_file
 		self.step = -1
+		self.velocity_sum = 0
+		self.Jerk_sum = 0
+		self.imp = np.array([])
+		self.last_acc = 0
+		self.lane_diff_sum = 0
 		self.wall_start = time.time()
 		self.initialized = False
 
@@ -240,9 +242,11 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 
 		tick_data, surroundings_info = self.tick(input_data)
 
+
 		surroundings_left_vehicles = process_actor_info(surroundings_info['left_vehicles'], 1)
 		surroundings_mid_vehicles = process_actor_info(surroundings_info['mid_vehicles'], 2)
 		surroundings_right_vehicles = process_actor_info(surroundings_info['right_vehicles'], 3)
+		surroundings_back_vehicles = process_actor_info(surroundings_info['back_vehicles'], 4)
 		surroundings_left_walkers = process_actor_info(surroundings_info['left_walkers'], 1)
 		surroundings_mid_walkers = process_actor_info(surroundings_info['mid_walkers'], 2)
 		surroundings_right_walkers = process_actor_info(surroundings_info['right_walkers'], 3)
@@ -300,18 +304,24 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		target_point = torch.stack(tick_data['target_point'], dim=1).to('cuda', dtype=torch.float32)
 		state = torch.cat([speed, target_point, cmd_one_hot], 1)
 
+
+
+
 		pred = self.net(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
-				traffic_light_state_end, state, target_point, waypoints_end)
+						traffic_light_state_end, state, target_point, waypoints_end)
 
-		steer_ctrl, throttle_ctrl, brake_ctrl, metadata = self.net.process_action(pred, tick_data['next_command'], gt_velocity, target_point)
+		steer_ctrl, throttle_ctrl, brake_ctrl, metadata = self.net.process_action(pred, tick_data['next_command'],
+																				  gt_velocity, target_point)
 
-		steer_traj, throttle_traj, brake_traj, metadata_traj = self.net.control_pid(pred['pred_wp'], gt_velocity, target_point)
+		steer_traj, throttle_traj, brake_traj, metadata_traj = self.net.control_pid(pred['pred_wp'], gt_velocity,
+																					target_point)
 		if brake_traj < 0.05: brake_traj = 0.0
 		if throttle_traj > brake_traj: brake_traj = 0.0
 
 		self.pid_metadata = metadata_traj
 		control = carla.VehicleControl()
 		# print(self.status)
+
 
 		if self.status == 0:
 			self.alpha = 0.3
@@ -334,6 +344,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		self.pid_metadata['throttle_traj'] = float(throttle_traj)
 		self.pid_metadata['brake_ctrl'] = float(brake_ctrl)
 		self.pid_metadata['brake_traj'] = float(brake_traj)
+
 
 		if control.brake > 0.5:
 			control.throttle = float(0)
@@ -359,11 +370,44 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		if SAVE_PATH is not None and self.step % 10 == 0:
 			self.save(tick_data)
 
-		if traffic_light_state == 2:
+		if traffic_light_state == 2 or len(self._global_route) < 16:
 			control.throttle = 0.6
 			control.brake = 0
 
-		print(control.steer, control.throttle, control.brake, traffic_light_state_temp)
+		# print(control.steer, control.throttle, control.brake, traffic_light_state_temp)
+
+		#####################################evlautate#################################################################
+		front_vehicle_info = surroundings_mid_vehicles[0]
+		# TTC
+		if front_vehicle_info[3] < 10 and front_vehicle_info[4] != 0:
+			speed_diff = CarlaDataProvider.get_velocity(self._ego_vehicle) - front_vehicle_info[2]
+			if speed_diff > 0:
+				TTC = front_vehicle_info[0] / speed_diff
+		# print(TTC)
+		# velocity
+		self.velocity_sum += CarlaDataProvider.get_velocity(self._ego_vehicle)
+		# print(self.velocity_sum / self.step)
+		# Jerk
+		acc = self._ego_vehicle.get_acceleration()
+		curr_acc = math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
+		self.Jerk_sum += abs(curr_acc - self.last_acc) / 0.05
+		self.last_acc = curr_acc
+		# print(self.Jerk_sum / self.step)
+		# Impact on rear vehicle
+		# print(surroundings_back_vehicles)
+		if control.brake > 0:
+			back_vehicle_info = surroundings_back_vehicles[0]
+			if back_vehicle_info[3] < 10 and back_vehicle_info[4] != 0:
+				self.imp = np.append(self.imp, back_vehicle_info[2])
+				# if self.imp.shape[0] != 0:
+				# 	print(self.imp.mean())
+		# Deviation
+		lane_diff = self._global_route[0][0].transform.location.distance(self._ego_vehicle.get_location())
+		self.lane_diff_sum += lane_diff
+		# print(self.lane_diff_sum / self.step)
+
+		###############################################################################################################
+
 		return control
 
 	def save(self, tick_data):

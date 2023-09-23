@@ -436,7 +436,7 @@ class ObsManager():
 
 		# print("mid_actors:")
 		# for actor in mid_actors:
-		# 	print(' '*20, actor.type_id)
+		# 	print(actor)
 
 		# print("right_actors")
 		# # print(right_actors)
