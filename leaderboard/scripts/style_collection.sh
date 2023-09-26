@@ -35,14 +35,14 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 
 
 
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+export ROUTES=leaderboard/data/TCP_training_routes/routes_town02.xml
 
-export ROUTES=leaderboard/data/TCP_training_routes/routes_town01.xml
+#export CHECKPOINT_ENDPOINT=results_aggressive_data_collect_town01_results.json
+export CHECKPOINT_ENDPOINT=results_aggressive_data_collect_town02_results.json
 
-
-export CHECKPOINT_ENDPOINT=results_aggressive_data_collect_town01_results.json
-
-
-export SAVE_PATH=data_aggressive/town01/
+#export SAVE_PATH=data_aggressive/town01/
+export SAVE_PATH=data_aggressive/town02/
 
 
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \

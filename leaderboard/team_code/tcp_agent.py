@@ -56,6 +56,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		self.step = -1
 		self.velocity_sum = 0
 		self.Jerk_sum = 0
+		self.TTC = 100000
 		self.imp = np.array([])
 		self.last_acc = 0
 		self.lane_diff_sum = 0
@@ -112,7 +113,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 			(self.save_path / 'surroundings').mkdir()
 
 	def _init(self):
-		self._route_planner = RoutePlanner(4.0, 50.0)
+		self._route_planner = RoutePlanner(4.0, 48.0)
 		self._route_planner.set_route(self._global_plan, True)
 
 		self.initialized = True
@@ -199,6 +200,8 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		
 		pos = self._get_position(result)
 		result['gps'] = pos
+
+
 		next_wp, next_cmd = self._route_planner.run_step(pos)
 
 		result['next_command'] = next_cmd.value
@@ -213,6 +216,21 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		local_command_point = np.array([next_wp[0]-pos[0], next_wp[1]-pos[1]])
 		local_command_point = R.T.dot(local_command_point)
 		result['target_point'] = tuple(local_command_point)
+		if (result['target_point'][0]) > 1 and abs(result['target_point'][1]) > 1:
+			self._route_planner.max_distance = 16
+			next_wp, next_cmd = self._route_planner.run_step(pos)
+			result['next_command'] = next_cmd.value
+			theta = compass + np.pi / 2
+			R = np.array([
+				[np.cos(theta), -np.sin(theta)],
+				[np.sin(theta), np.cos(theta)]
+			])
+			local_command_point = np.array([next_wp[0] - pos[0], next_wp[1] - pos[1]])
+			local_command_point = R.T.dot(local_command_point)
+			result['target_point'] = tuple(local_command_point)
+			self._route_planner.max_distance = 48
+
+
 
 
 		return result, surroundings_info
@@ -291,6 +309,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		if command < 0:
 			command = 4
 		command -= 1
+		# if waypoints_end[31] > 5 and
 		assert command in [0, 1, 2, 3, 4, 5]
 		cmd_one_hot = [0] * 6
 		cmd_one_hot[command] = 1
@@ -321,7 +340,6 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		self.pid_metadata = metadata_traj
 		control = carla.VehicleControl()
 		# print(self.status)
-
 
 		if self.status == 0:
 			self.alpha = 0.3
@@ -370,12 +388,9 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 		if SAVE_PATH is not None and self.step % 10 == 0:
 			self.save(tick_data)
 
-		if traffic_light_state == 2 or len(self._global_route) < 16:
-			control.throttle = 0.6
-			control.brake = 0
+
 
 		# print(control.steer, control.throttle, control.brake, traffic_light_state_temp)
-
 		#####################################evlautate#################################################################
 		front_vehicle_info = surroundings_mid_vehicles[0]
 		# TTC
@@ -383,6 +398,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 			speed_diff = CarlaDataProvider.get_velocity(self._ego_vehicle) - front_vehicle_info[2]
 			if speed_diff > 0:
 				TTC = front_vehicle_info[0] / speed_diff
+				self.TTC = min(self.TTC, TTC)
 		# print(TTC)
 		# velocity
 		self.velocity_sum += CarlaDataProvider.get_velocity(self._ego_vehicle)
@@ -402,11 +418,17 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 				# if self.imp.shape[0] != 0:
 				# 	print(self.imp.mean())
 		# Deviation
-		lane_diff = self._global_route[0][0].transform.location.distance(self._ego_vehicle.get_location())
+		lane_center = self._map.get_waypoint(self._ego_vehicle.get_location())
+		lane_diff = lane_center.transform.location.distance(self._ego_vehicle.get_location())
+		# print(lane_diff)
 		self.lane_diff_sum += lane_diff
 		# print(self.lane_diff_sum / self.step)
 
 		###############################################################################################################
+		if traffic_light_state == 2 or len(self._global_route) < 16:
+			if front_vehicle_info[0] > 10 or front_vehicle_info[0] == 0:
+				control.throttle = 0.6
+				control.brake = 0
 
 		return control
 
@@ -444,10 +466,11 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
 
 		# 50 means Maximum distance between samples
 		# ds_ids record the key waypoints (every 50 waypoints or state change waypoints)
-		ds_ids = downsample_route(global_plan_world_coord, 50)
+		ds_ids = downsample_route(global_plan_world_coord, 16)
 		# print("length of the ds_ids")		
-		# print(len(ds_ids))
+
 		self._global_plan = [global_plan_gps[x] for x in ds_ids]
+		# print(len(self._global_plan))
 
 		self._global_plan_world_coord = [
 			(global_plan_world_coord[x][0], global_plan_world_coord[x][1]) for x in ds_ids]

@@ -45,6 +45,7 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town03_addition.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town04.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town04_val.xml
+export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid.xml
 
 #export CHECKPOINT_ENDPOINT=data_collect_town01_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town01_val_results.json
@@ -56,6 +57,7 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 #export CHECKPOINT_ENDPOINT=data_collect_town03_addition_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town04_results.json
 #export CHECKPOINT_ENDPOINT=data_collect_town04_val_results.json
+export CHECKPOINT_ENDPOINT=test.json
 
 
 #export SAVE_PATH=data/town01/
@@ -68,6 +70,7 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 #export SAVE_PATH=data/town03_addition/
 #export SAVE_PATH=data/town04/
 #export SAVE_PATH=data/town04_val/
+export SAVE_PATH=data/test/
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --scenarios=${SCENARIOS}  \
 --routes=${ROUTES} \

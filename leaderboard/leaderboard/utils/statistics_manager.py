@@ -50,6 +50,7 @@ class RouteRecord():
         }
 
         self.meta = {}
+        self.evaluate = {}
 
 
 def to_route_record(record_dict):
@@ -139,6 +140,7 @@ class StatisticsManager(object):
         route_record.meta['total_steps'] = config.agent.step
 
 
+
         if self._master_scenario:
             if self._master_scenario.timeout_node.timeout:
                 route_record.infractions['route_timeout'].append('Route timeout.')
@@ -194,6 +196,14 @@ class StatisticsManager(object):
         route_record.scores['score_route'] = score_route
         route_record.scores['score_penalty'] = score_penalty
         route_record.scores['score_composed'] = max(score_route*score_penalty, 0.0)
+
+        route_record.evaluate['route_completed'] = score_route
+        route_record.evaluate['avg_lane_diff'] = config.agent.lane_diff_sum / config.agent.step
+        route_record.evaluate['avg_imp'] = config.agent.imp.mean() if config.agent.imp.shape[0] else 0
+        route_record.evaluate['avg_Jerk'] = config.agent.Jerk_sum / config.agent.step
+        route_record.evaluate['avg_vel'] = config.agent.velocity_sum / config.agent.step
+        route_record.evaluate['min_ttc'] = config.agent.TTC
+
 
         # update status
         if target_reached:

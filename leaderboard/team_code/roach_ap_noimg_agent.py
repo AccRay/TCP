@@ -573,6 +573,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		steer = control.steer
 		control.steer = steer + 1e-2 * np.random.randn()
 		self.last_control = control
+
 		return control
 
 	def collision_detect(self):
