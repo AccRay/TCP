@@ -95,6 +95,12 @@ class ObsManager():
 			assert np.isclose(self._pixels_per_meter, float(hf.attrs['pixels_per_meter']))
 
 		self._distance_threshold = np.ceil(self._width / self._pixels_per_meter)
+		print(self._distance_threshold)
+		print(self._distance_threshold)
+		print(self._distance_threshold)
+		print(self._distance_threshold)
+		print(self._distance_threshold)
+		exit()
 
 	@staticmethod
 	def _get_stops(criteria_stop):

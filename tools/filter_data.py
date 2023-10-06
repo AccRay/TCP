@@ -28,7 +28,6 @@ if __name__ == '__main__':
 	# towns = ["town01_addition", "town02_val"]
 
 	towns = ["town03_val", "town03_addition"]
-
 	# towns = ["town05"]
 	# towns = ["town10"]
 	towns = ["town10_addition"]
@@ -39,10 +38,12 @@ if __name__ == '__main__':
 	# result_path = ""
 	result_path = "/home/wangyuze/TCP-TCP_0911"
 	result_pattern = "data_collect_{}_results.json" # town
+	result_pattern = "results_aggressive_data_collect_{}_results.json" # town
 	# result_pattern = "{}_results_02.json" # town
 
 	# data_path = ""
 	data_path = "/home/wangyuze/TCP-TCP_0911/data"
+	data_path = "/home/ubuntu2204/TCP-main/TCP/data_aggressive"
 	# data_pattern = "{}_{}" # town, type
 	# data_pattern = "data_collect_{}_results" # town, type
 	data_pattern = "{}" # town, type
