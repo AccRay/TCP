@@ -94,7 +94,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
     # path_to_conf_file --> roach/config/config_agent.yaml
 
     def setup(self, path_to_conf_file, ckpt="roach/log/ckpt_11833344.pth"):
-        self.behavior = 'aggressive'
+        self.behavior = 'cautious'
         self._render_dict = None
         self.supervision_dict = None
         self._ckpt = ckpt

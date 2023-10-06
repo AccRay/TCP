@@ -49,7 +49,7 @@ class TCP(nn.Module):
 						)
 
 		self.join_traj = nn.Sequential(
-							nn.Linear(128+1000, 512),
+							nn.Linear(128 + 288, 512),
 							nn.ReLU(inplace=True),
 							nn.Linear(512, 512),
 							nn.ReLU(inplace=True),
@@ -58,7 +58,7 @@ class TCP(nn.Module):
 						)
 
 		self.join_ctrl = nn.Sequential(
-							nn.Linear(128+512, 512),
+							nn.Linear(128+288, 512),
 							nn.ReLU(inplace=True),
 							nn.Linear(512, 512),
 							nn.ReLU(inplace=True),
@@ -67,7 +67,7 @@ class TCP(nn.Module):
 						)
 
 		self.speed_branch = nn.Sequential(
-							nn.Linear(1000, 256),
+							nn.Linear(288, 256),
 							nn.ReLU(inplace=True),
 							nn.Linear(256, 256),
 							nn.Dropout2d(p=0.5),
@@ -124,7 +124,7 @@ class TCP(nn.Module):
 		self.init_att = nn.Sequential(
 				nn.Linear(128, 256),
 				nn.ReLU(inplace=True),
-				nn.Linear(256, 512),
+				nn.Linear(256, 288),
 				nn.Softmax(1)
 			)
 
@@ -137,35 +137,36 @@ class TCP(nn.Module):
 		self.wp_att = nn.Sequential(
 				nn.Linear(256+256, 256),
 				nn.ReLU(inplace=True),
-				nn.Linear(256, 512),
+				nn.Linear(256, 288),
 				nn.Softmax(1)
 			)
 
 		self.merge = nn.Sequential(
-				nn.Linear(512+256, 512),
+				nn.Linear(288+256, 512),
 				nn.ReLU(inplace=True),
 				nn.Linear(512, 256),
 			)
 
-		self.MLP = nn.Sequential(
-			nn.Linear(512, 1024),
-			nn.ReLU(inplace=True),
-			nn.Linear(1024,1024),
-			nn.ReLU(inplace=True),
-			nn.Linear(1024, 1000)
-		)
+		# self.MLP = nn.Sequential(
+		# 	nn.Linear(512, 1024),
+		# 	nn.ReLU(inplace=True),
+		# 	nn.Linear(1024, 1024),
+		# 	nn.ReLU(inplace=True),
+		# 	nn.Linear(1024, 1000)
+		# )
 
-		self.is_junction_emb = nn.Linear(1, 16, bias=False)
-		self.vehicles_emb = nn.Linear(45, 128, bias=False)
-		self.walkers_emb = nn.Linear(45, 128, bias=False)
+		self.is_junction_emb = nn.Linear(1, 32, bias=False)
+		self.vehicles_emb = nn.Linear(45, 32, bias=False)
+		self.walkers_emb = nn.Linear(45, 32, bias=False)
 		self.stops_emb = nn.Linear(3, 32, bias=False)
-		self.max_speed_emb = nn.Linear(1, 16, bias=False)
-		self.stop_sign_emb = nn.Linear(1, 16, bias=False)
-		self.yield_sign_emb = nn.Linear(1, 16, bias=False)
+		self.max_speed_emb = nn.Linear(1, 32, bias=False)
+		self.stop_sign_emb = nn.Linear(1, 32, bias=False)
+		self.yield_sign_emb = nn.Linear(1, 32, bias=False)
 		self.traffic_light_state = nn.Linear(4, 32, bias=False)
-		self.waypoint_emb = nn.Linear(32, 128, bias=False)
-
-		self.env_feature = nn.Linear(1000, 512)
+		self.waypoint_emb = nn.Linear(32, 32, bias=False)
+		self.multihead_attn = nn.MultiheadAttention(32, 4)
+		self.layernorm = nn.LayerNorm(32)
+		# self.env_feature = nn.Linear(288, 512)
 
 		
 	#nn caculate 
@@ -181,12 +182,12 @@ class TCP(nn.Module):
 		yield_sign_emb = self.yield_sign_emb(yield_sign)
 		traffic_light_state = self.traffic_light_state(traffic_light_state)
 		waypoints_emb = self.waypoint_emb(waypoints)
-
-
-
 		cat_emb_feature = torch.cat((is_junction_emb, vehicles_emb, walkers_emb, stops_emb, max_speed_emb,
-									 stop_sign_emb, yield_sign_emb, traffic_light_state, waypoints_emb), dim=1)
-		feature_emb = self.MLP(cat_emb_feature)
+									 stop_sign_emb, yield_sign_emb, traffic_light_state, waypoints_emb), dim=1).reshape(-1, 9, 32)
+
+		attn_output, attn_output_weights = self.multihead_attn(cat_emb_feature, cat_emb_feature, cat_emb_feature)
+
+		feature_emb = self.layernorm(attn_output).reshape(-1, 288)
 		outputs = {}
 		outputs['pred_speed'] = self.speed_branch(feature_emb)
 		measurement_feature = self.measurements(state)
@@ -216,8 +217,7 @@ class TCP(nn.Module):
 		traj_hidden_state = torch.stack(traj_hidden_state, dim=1)
 		init_att = self.init_att(measurement_feature)
 		# feature_emb = torch.sum(cnn_feature*init_att, dim=(2, 3))
-		env_feature = self.env_feature(feature_emb)
-		feature_emb = init_att * env_feature
+		feature_emb = init_att * attn_output.reshape(-1, 288)
 		j_ctrl = self.join_ctrl(torch.cat([feature_emb, measurement_feature], 1))
 		outputs['pred_value_ctrl'] = self.value_branch_ctrl(j_ctrl)
 		outputs['pred_features_ctrl'] = j_ctrl
@@ -238,7 +238,7 @@ class TCP(nn.Module):
 			h = self.decoder_ctrl(x_in, h)
 			# wp_att = self.wp_att(torch.cat([h, traj_hidden_state[:, _]], 1)).view(-1, 1, 8, 29)
 			wp_att = self.wp_att(torch.cat([h, traj_hidden_state[:, _]], 1))
-			new_feature_emb = env_feature * wp_att
+			new_feature_emb = feature_emb * wp_att
 			merged_feature = self.merge(torch.cat([h, new_feature_emb], 1))
 			dx = self.output_ctrl(merged_feature)
 			x = dx + x

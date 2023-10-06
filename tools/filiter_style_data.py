@@ -28,15 +28,15 @@ if __name__ == '__main__':
     routes_type = ["short"]
     # towns = ["town05", "town06","town07", "town10"]
     # towns = ["town01_addition", "town02_val"]
-    towns = ["town01_val", "town01_addition"]
+    towns = ["town02"]
 
     # result_path = ""
-    result_path = "/home/wangyuze/TCP-TCP_0911"
-    result_pattern = "data_aggressive_collect_{}_results.json"  # town
+    result_path = "/home/wyz/TCP"
+    result_pattern = "cautious_data_collect_{}_results.json"  # town
     # result_pattern = "{}_results_02.json" # town
 
     # data_path = ""
-    data_path = "/home/wangyuze/TCP-TCP_0911/data_aggressive"
+    data_path = "/home/wyz/TCP/data_cautious"
     # data_pattern = "{}_{}" # town, type
     # data_pattern = "data_collect_{}_results" # town, type
     data_pattern = "{}"  # town, type
