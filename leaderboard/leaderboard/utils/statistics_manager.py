@@ -19,10 +19,10 @@ from srunner.scenariomanager.traffic_events import TrafficEventType
 
 from leaderboard.utils.checkpoint_tools import fetch_dict, save_dict, create_default_json_msg
 
-PENALTY_COLLISION_PEDESTRIAN = 0.50
-PENALTY_COLLISION_VEHICLE = 0.60
-PENALTY_COLLISION_STATIC = 0.65
-PENALTY_TRAFFIC_LIGHT = 0.70
+PENALTY_COLLISION_PEDESTRIAN = 0.70
+PENALTY_COLLISION_VEHICLE = 0.70
+PENALTY_COLLISION_STATIC = 0.70
+PENALTY_TRAFFIC_LIGHT = 0.80
 PENALTY_STOP = 0.80
 
 
@@ -50,7 +50,7 @@ class RouteRecord():
         }
 
         self.meta = {}
-        self.evaluate = {}
+        # self.evaluate = {}
 
 
 def to_route_record(record_dict):
@@ -197,12 +197,12 @@ class StatisticsManager(object):
         route_record.scores['score_penalty'] = score_penalty
         route_record.scores['score_composed'] = max(score_route*score_penalty, 0.0)
 
-        route_record.evaluate['route_completed'] = score_route
-        route_record.evaluate['avg_lane_diff'] = config.agent.lane_diff_sum / config.agent.step
-        route_record.evaluate['avg_imp'] = config.agent.imp.mean() if config.agent.imp.shape[0] else 0
-        route_record.evaluate['avg_Jerk'] = config.agent.Jerk_sum / config.agent.step
-        route_record.evaluate['avg_vel'] = config.agent.velocity_sum / config.agent.step
-        route_record.evaluate['min_ttc'] = config.agent.TTC
+        # route_record.evaluate['route_completed'] = score_route
+        # route_record.evaluate['avg_lane_diff'] = config.agent.lane_diff_sum / config.agent.step
+        # route_record.evaluate['avg_imp'] = config.agent.imp.mean() if config.agent.imp.shape[0] else 0
+        # route_record.evaluate['avg_Jerk'] = config.agent.Jerk_sum / config.agent.step
+        # route_record.evaluate['avg_vel'] = config.agent.velocity_sum / config.agent.step
+        # route_record.evaluate['min_ttc'] = config.agent.TTC
 
 
         # update status

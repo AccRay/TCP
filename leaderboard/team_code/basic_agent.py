@@ -495,7 +495,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
             x = x * 2 - 1
 
             return -x
-        print(actions, sigma, mu, _get_action_beta(sigma, mu))
+        # print(actions, sigma, mu, _get_action_beta(sigma, mu))
         actions = _get_action_beta(sigma, mu)
 
 

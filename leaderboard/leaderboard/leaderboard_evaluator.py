@@ -527,6 +527,7 @@ class LeaderboardEvaluator(object):
             # 'subtype', 'town', 'trajectory', 'trigger_points', 'type', 'weather']
 
             # run agent
+
             self._load_and_run_scenario(args, config)
 
             for obj in gc.get_objects():
