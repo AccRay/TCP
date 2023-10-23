@@ -7,7 +7,6 @@ import tqdm
 def remove_files(root, index, items = {"meta":".json", "supervision":".npy", "surroundings":".npy"}):
 	# items = {"measurements":".json", "rgb_front":".png"}/
 	# items = {"measurements":".json",}
-	# items = {}
 	items = {"supervision":".npy", "surroundings":".npy", "measurements":".json"}
 	sub_folders = list(os.listdir(root))
 	for sub_folder in sub_folders:
@@ -32,10 +31,12 @@ if __name__ == '__main__':
 	# result_path = ""
 	result_path = "/home/wyz/TCP"
 	result_pattern = "data_collect_{}_results.json" # town
+	result_pattern = "results_aggressive_data_collect_{}_results.json" # town
 	# result_pattern = "{}_results_02.json" # town
 
 	# data_path = ""
 	data_path = "/home/wyz/TCP/data"
+
 	# data_pattern = "{}_{}" # town, type
 	# data_pattern = "data_collect_{}_results" # town, type
 	data_pattern = "{}" # town, type
