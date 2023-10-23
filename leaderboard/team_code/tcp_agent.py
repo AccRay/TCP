@@ -263,10 +263,11 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         vehicles_temp = surroundings_left_vehicles + surroundings_mid_vehicles + surroundings_right_vehicles
         walkers_temp = surroundings_left_walkers + surroundings_mid_walkers + surroundings_right_walkers
         is_junction_temp = 1 if ego_vehicle_waypoint.is_junction else 0
+        is_junction = torch.tensor(is_junction_temp, dtype=torch.float32).view(1, 1).to('cuda')
         traffic_light_state_temp, light_loc, light_id = TrafficLightHandler.get_light_state(self._ego_vehicle)
 
         traffic_light_state = TRAFFIC_LIGHT_STATE[str(traffic_light_state_temp)]
-        is_junction = torch.tensor(is_junction_temp, dtype=torch.float32).view(1, 1).to('cuda')
+
         if traffic_light_state not in [0, 1, 2, 3]:
             traffic_light_state = 0
         assert traffic_light_state in [0, 1, 2, 3]
@@ -420,7 +421,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         if control.throttle < control.brake:
             if (traffic_light_state == 0 and front_vehicle_info[0] == 0 and front_walkers_info[0] == 0
                     and right_walkers_info[0] == 0 and left_walkers_info[0] == 0 and surroundings_left_vehicles[0][0] == 0
-                    and surroundings_left_vehicles[0][0] == 0):
+                    and surroundings_right_vehicles[0][0] == 0):
                 control.throttle = 0.75
                 control.brake = 0
 

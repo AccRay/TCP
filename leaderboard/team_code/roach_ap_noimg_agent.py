@@ -4,6 +4,7 @@ import datetime
 import pathlib
 import time
 import cv2
+import math
 
 import torch
 import carla
@@ -128,6 +129,14 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		self.track = autonomous_agent.Track.SENSORS
 		self.config_path = path_to_conf_file
 		self.step = -1
+
+		self.velocity_sum = 0
+		self.Jerk_sum = 0
+		self.TTC = 100000
+		self.imp = np.array([])
+		self.last_acc = 0
+		self.lane_diff_sum = 0
+
 		self.wall_start = time.time()
 
 		self.initialized = False
@@ -574,6 +583,43 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 		control.steer = steer + 1e-2 * np.random.randn()
 		self.last_control = control
 
+		#####################################evlautate#################################################################
+		surroundings_mid_vehicles = process_actor_info(surroundings_info['mid_vehicles'], 2)
+		surroundings_back_vehicles = process_actor_info(surroundings_info['back_vehicles'], 4)
+		front_vehicle_info = surroundings_mid_vehicles[0]
+		# TTC
+		if front_vehicle_info[3] < 10 and front_vehicle_info[4] != 0:
+			speed_diff = CarlaDataProvider.get_velocity(self._ego_vehicle) - front_vehicle_info[2]
+			if speed_diff > 0:
+				TTC = front_vehicle_info[0] / speed_diff
+				self.TTC = min(self.TTC, TTC)
+		# print(TTC)
+		# velocity
+		self.velocity_sum += CarlaDataProvider.get_velocity(self._ego_vehicle)
+		# print(self.velocity_sum / self.step)
+		# Jerk
+		acc = self._ego_vehicle.get_acceleration()
+		curr_acc = math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
+		self.Jerk_sum += abs(curr_acc - self.last_acc) / 0.05
+		self.last_acc = curr_acc
+		# print(self.Jerk_sum / self.step)
+		# Impact on rear vehicle
+		# print(surroundings_back_vehicles)
+		if control.brake > 0:
+			back_vehicle_info = surroundings_back_vehicles[0]
+			if back_vehicle_info[3] < 10 and back_vehicle_info[4] != 0:
+				self.imp = np.append(self.imp, back_vehicle_info[2])
+		# if self.imp.shape[0] != 0:
+		# 	print(self.imp.mean())
+		# Deviation
+		lane_center = self._map.get_waypoint(self._ego_vehicle.get_location())
+		lane_diff = lane_center.transform.location.distance(self._ego_vehicle.get_location())
+		# print(lane_diff)
+		self.lane_diff_sum += lane_diff
+		# print(self.lane_diff_sum / self.step)
+
+		###############################################################################################################
+
 		return control
 
 	def collision_detect(self):
@@ -891,3 +937,23 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
 							   color=carla.Color(0, 0, 255), life_time=persistency)
 		world.debug.draw_point(waypoints[-1][0].transform.location + carla.Location(z=vertical_shift), size=0.2,
 							   color=carla.Color(255, 0, 0), life_time=persistency)
+
+def process_actor_info(actor_list, direction):
+	"""
+	Delete farthest vehicles with a list quantity exceeding 3
+	Fill in 0 if the list quantity is less than 3
+	remove keys from dic
+	"""
+	training_list = []
+	if len(actor_list) > 3:
+		sorted_dicts = sorted(actor_list, key=lambda x: x["distance_to_ego"])
+		actor_list = sorted_dicts[:3]
+	if len(actor_list) > 0:
+		for actor in actor_list:
+			distance_to_ego = actor['distance_to_ego']
+			direction_to_ego = actor['direction_to_ego']
+			speed = actor['speed']
+			forward_vector = actor['forward_vector']
+			training_list.append([distance_to_ego, direction_to_ego, speed, forward_vector, direction])
+	training_list = training_list + [[0, 0, 0, 0, 0]] * (3 - len(training_list))
+	return training_list

@@ -18,13 +18,13 @@ export RESUME=True
 
 
 # TCP evaluation
-export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid_new.xml
-#export ROUTES=leaderboard/data/TCP_training_routes/routes_town02_val.xml
-export TEAM_AGENT=team_code/tcp_agent.py
-export TEAM_CONFIG=/home/wyz/TCP/log/TCP_Base/epoch=59-last.ckpt
-export CHECKPOINT_ENDPOINT=results_TCP.json
+export ROUTES=leaderboard/data/evaluation_routes/test2.xml
+#export ROUTES=leaderboard/data/TCP_training_routes/routes_town05_val.xml
+export TEAM_AGENT=team_code/our_agent.py
+export TEAM_CONFIG=/home/wyz/TCP/log/TCP_T/epoch=9-last.ckpt
+export CHECKPOINT_ENDPOINT=t1.json
 export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
-export SAVE_PATH=data/results_TCP/
+export SAVE_PATH=data/t1/
 
 
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
@@ -40,5 +40,40 @@ python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --resume=${RESUME} \
 --port=${PORT} \
 --trafficManagerPort=${TM_PORT}
+
+
+#export TEAM_CONFIG=/home/wyz/TCP/log/TCP_T_aggressive/epoch=9-last.ckpt
+#export CHECKPOINT_ENDPOINT=results_TransformerV3_aggressive.json
+#export SAVE_PATH=data/results_TransformerV3_aggressive/
+#python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
+#--scenarios=${SCENARIOS}  \
+#--routes=${ROUTES} \
+#--repetitions=${REPETITIONS} \
+#--track=${CHALLENGE_TRACK_CODENAME} \
+#--checkpoint=${CHECKPOINT_ENDPOINT} \
+#--agent=${TEAM_AGENT} \
+#--agent-config=${TEAM_CONFIG} \
+#--debug=${DEBUG_CHALLENGE} \
+#--record=${RECORD_PATH} \
+#--resume=${RESUME} \
+#--port=${PORT} \
+#--trafficManagerPort=${TM_PORT}
+
+#export TEAM_CONFIG=/home/wyz/TCP/log/TCP_T_cautious/epoch=9-last.ckpt
+#export CHECKPOINT_ENDPOINT=results_TransformerV3_cautious.json
+#export SAVE_PATH=data/results_TransformerV3_cautious/
+#python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
+#--scenarios=${SCENARIOS}  \
+#--routes=${ROUTES} \
+#--repetitions=${REPETITIONS} \
+#--track=${CHALLENGE_TRACK_CODENAME} \
+#--checkpoint=${CHECKPOINT_ENDPOINT} \
+#--agent=${TEAM_AGENT} \
+#--agent-config=${TEAM_CONFIG} \
+#--debug=${DEBUG_CHALLENGE} \
+#--record=${RECORD_PATH} \
+#--resume=${RESUME} \
+#--port=${PORT} \
+#--trafficManagerPort=${TM_PORT}
 
 

@@ -36,15 +36,15 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 
 
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town05.xml
-export ROUTES=leaderboard/data/TCP_training_routes/routes_town06.xml
+export ROUTES=leaderboard/data/TCP_training_routes/routes_town02.xml
 #export ROUTES=leaderboard/data/TCP_training_routes/routes_town10_addition.xml
 
 #export CHECKPOINT_ENDPOINT=cautious_data_collect_town05_results.json
-export CHECKPOINT_ENDPOINT=cautious_data_collect_town06_results.json
+export CHECKPOINT_ENDPOINT=cautious_data_collect_town02_results.json
 #export CHECKPOINT_ENDPOINT=cautious_data_collect_town10_addition_results.json
 
 #export SAVE_PATH=data_cautious/town05/
-export SAVE_PATH=data_cautious/town06/
+export SAVE_PATH=data_cautious/town02/
 #export SAVE_PATH=data_cautious/town10_addition/
 
 

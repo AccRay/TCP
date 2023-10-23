@@ -8,18 +8,18 @@ class GlobalConfig:
 
 	# data root
 	# root_dir_all = "tcp_carla_data"
-	root_dir_all = "/home/wyz/TCP/data_aggressive"
+	root_dir_all = "/data1/wyz/TCP/data_aggressive"
 
-	# train_towns = ['town01', 'town03', 'town04',  'town06', ]
-	# val_towns = ['town02', 'town05', 'town07', 'town10']
 	train_towns = ['town01']
 	val_towns = ['town01']
+	# train_towns = ['town01', 'town02', 'town03', 'town04', 'town05', 'town06', 'town07', 'town10']
+	# val_towns = ['town01', 'town02', 'town03', 'town04', 'town05', 'town06', 'town07', 'town10']
 	# val_towns = ['town01_addition']
 	
 	train_data, val_data = [], [] 
 	for town in train_towns:		
 		train_data.append(os.path.join(root_dir_all, town))
-		if town not in ['town02', 'town05']:
+		if town not in ['town02', 'town06', 'town07']:
 			train_data.append(os.path.join(root_dir_all, town+'_addition'))
 	for town in val_towns:
 		val_data.append(os.path.join(root_dir_all, town+'_val'))
@@ -35,15 +35,15 @@ class GlobalConfig:
 	lr = 1e-4 # learning rate
 
 	# Controller
-	turn_KP = 0.75
-	turn_KI = 0.75
-	turn_KD = 0.3
-	turn_n = 40 # buffer size
+	#turn_KP = 0.75
+	#turn_KI = 0.75
+	#turn_KD = 0.3
+	#turn_n = 40 # buffer size
 
-	speed_KP = 5.0
-	speed_KI = 0.5
-	speed_KD = 1.0
-	speed_n = 40 # buffer size
+	#speed_KP = 5.0
+	#speed_KI = 0.5
+	#speed_KD = 1.0
+	#speed_n = 40 # buffer size
 
 	max_throttle = 0.75 # upper limit on throttle signal value in dataset
 	brake_speed = 0.4 # desired speed below which brake is triggered
@@ -62,7 +62,6 @@ class GlobalConfig:
 
 	rl_ckpt = "roach/log/ckpt_11833344.pth"
 
-	img_aug = True
 
 
 	def __init__(self, **kwargs):

@@ -5,7 +5,6 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms as T
 
-from TCP.augment import hard as augmenter
 
 class CARLA_Data(Dataset):
 
@@ -145,7 +144,6 @@ class CARLA_Data(Dataset):
 		wp = torch.squeeze(torch.tensor(self.wp[index], dtype=torch.float32), dim=0)
 		data['wp'] = wp[:, 0:2].reshape(-1)
 
-
 		data['waypoints'] = np.array(waypoints)
 
 		data['action'] = self.action[index]
@@ -217,8 +215,6 @@ class CARLA_Data(Dataset):
 		self._batch_read_number += 1
 		return data
 
-
-
 def flatten(input_list):
 	result = []
 	for item in input_list:
@@ -227,99 +223,3 @@ def flatten(input_list):
 		else:
 			result.append(item)
 	return result
-
-def scale_and_crop_image(image, scale=1, crop_w=256, crop_h=256):
-	"""
-	Scale and crop a PIL image
-	"""
-	(width, height) = (int(image.width // scale), int(image.height // scale))
-	im_resized = image.resize((width, height))
-	start_x = height//2 - crop_h//2
-	start_y = width//2 - crop_w//2
-	cropped_image = im_resized.crop((start_y, start_x, start_y+crop_w, start_x+crop_h))
-
-	# cropped_image = image[start_x:start_x+crop, start_y:start_y+crop]
-	# cropped_image = np.transpose(cropped_image, (2,0,1))
-	return cropped_image
-
-
-def transform_2d_points(xyz, r1, t1_x, t1_y, r2, t2_x, t2_y):
-	"""
-	Build a rotation matrix and take the dot product.
-	"""
-	# z value to 1 for rotation
-	xy1 = xyz.copy()
-	xy1[:,2] = 1
-
-	c, s = np.cos(r1), np.sin(r1)
-	r1_to_world = np.matrix([[c, s, t1_x], [-s, c, t1_y], [0, 0, 1]])
-
-	# np.dot converts to a matrix, so we explicitly change it back to an array
-	world = np.asarray(r1_to_world @ xy1.T)
-
-	c, s = np.cos(r2), np.sin(r2)
-	r2_to_world = np.matrix([[c, s, t2_x], [-s, c, t2_y], [0, 0, 1]])
-	world_to_r2 = np.linalg.inv(r2_to_world)
-
-	out = np.asarray(world_to_r2 @ world).T
-	
-	# reset z-coordinate
-	out[:,2] = xyz[:,2]
-
-	return out
-
-def rot_to_mat(roll, pitch, yaw):
-	roll = np.deg2rad(roll)
-	pitch = np.deg2rad(pitch)
-	yaw = np.deg2rad(yaw)
-
-	yaw_matrix = np.array([
-		[np.cos(yaw), -np.sin(yaw), 0],
-		[np.sin(yaw), np.cos(yaw), 0],
-		[0, 0, 1]
-	])
-	pitch_matrix = np.array([
-		[np.cos(pitch), 0, -np.sin(pitch)],
-		[0, 1, 0],
-		[np.sin(pitch), 0, np.cos(pitch)]
-	])
-	roll_matrix = np.array([
-		[1, 0, 0],
-		[0, np.cos(roll), np.sin(roll)],
-		[0, -np.sin(roll), np.cos(roll)]
-	])
-
-	rotation_matrix = yaw_matrix.dot(pitch_matrix).dot(roll_matrix)
-	return rotation_matrix
-
-
-def vec_global_to_ref(target_vec_in_global, ref_rot_in_global):
-	R = rot_to_mat(ref_rot_in_global['roll'], ref_rot_in_global['pitch'], ref_rot_in_global['yaw'])
-	np_vec_in_global = np.array([[target_vec_in_global[0]],
-								 [target_vec_in_global[1]],
-								 [target_vec_in_global[2]]])
-	np_vec_in_ref = R.T.dot(np_vec_in_global)
-	return np_vec_in_ref[:,0]
-
-def get_action_beta(alpha, beta):
-		x = torch.zeros_like(alpha)
-		x[:, 1] += 0.5
-		mask1 = (alpha > 1) & (beta > 1)
-		x[mask1] = (alpha[mask1]-1)/(alpha[mask1]+beta[mask1]-2)
-
-		mask2 = (alpha <= 1) & (beta > 1)
-		x[mask2] = 0.0
-
-		mask3 = (alpha > 1) & (beta <= 1)
-		x[mask3] = 1.0
-
-		# mean
-		mask4 = (alpha <= 1) & (beta <= 1)
-		x[mask4] = alpha[mask4]/(alpha[mask4]+beta[mask4])
-
-		x = x * 2 - 1
-
-		return x
-
-
-	

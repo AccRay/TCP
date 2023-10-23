@@ -1,7 +1,7 @@
 import argparse
 import os
 from collections import OrderedDict
-
+import sys
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -12,10 +12,12 @@ from torch.distributions import Beta
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import DDPPlugin
-
-from TCP.model_Att import TCP
+sys.path.append('./')
+from TCP.model_transformerV3 import TCP
 from TCP.data import CARLA_Data
 from TCP.config import GlobalConfig
+
+
 
 
 class TCP_planner(pl.LightningModule):
@@ -28,7 +30,7 @@ class TCP_planner(pl.LightningModule):
 
 	def _load_weight(self):
 		rl_state_dict = torch.load(self.config.rl_ckpt, map_location='cpu')['policy_state_dict']
-		self._load_state_dict(self.model.value_branch_traj, rl_state_dict, 'value_head')
+		# self._load_state_dict(self.model.value_branch_traj, rl_state_dict, 'value_head')
 		self._load_state_dict(self.model.value_branch_ctrl, rl_state_dict, 'value_head')
 		self._load_state_dict(self.model.dist_mu, rl_state_dict, 'dist_mu')
 		self._load_state_dict(self.model.dist_sigma, rl_state_dict, 'dist_sigma')
@@ -63,7 +65,6 @@ class TCP_planner(pl.LightningModule):
 		value = batch['value'].view(-1,1)
 		feature = batch['feature']
 
-		gt_waypoints = batch['waypoints']
 		waypoints = batch['wp']
 
 		pred = self.model(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
@@ -73,9 +74,8 @@ class TCP_planner(pl.LightningModule):
 		dist_pred = Beta(pred['mu_branches'], pred['sigma_branches'])
 		kl_div = torch.distributions.kl_divergence(dist_sup, dist_pred)
 		action_loss = torch.mean(kl_div[:, 0]) *0.5 + torch.mean(kl_div[:, 1]) *0.5
-		speed_loss = F.l1_loss(pred['pred_speed'], speed) * self.config.speed_weight
-		value_loss = (F.mse_loss(pred['pred_value_traj'], value) + F.mse_loss(pred['pred_value_ctrl'], value)) * self.config.value_weight
-		feature_loss = (F.mse_loss(pred['pred_features_traj'], feature) +F.mse_loss(pred['pred_features_ctrl'], feature))* self.config.features_weight
+		value_loss = F.mse_loss(pred['pred_value_ctrl'], value) * self.config.value_weight
+		feature_loss = F.mse_loss(pred['pred_features_ctrl'], feature) * self.config.features_weight
 
 		future_feature_loss = 0
 		future_action_loss = 0
@@ -87,11 +87,8 @@ class TCP_planner(pl.LightningModule):
 			future_feature_loss += F.mse_loss(pred['future_feature'][i], batch['future_feature'][i]) * self.config.features_weight
 		future_feature_loss /= self.config.pred_len
 		future_action_loss /= self.config.pred_len
-		wp_loss = F.l1_loss(pred['pred_wp'], gt_waypoints, reduction='none').mean()
-		loss = action_loss + speed_loss + value_loss + feature_loss + wp_loss+ future_feature_loss + future_action_loss
+		loss = action_loss + value_loss + feature_loss + future_feature_loss + future_action_loss
 		self.log('train_action_loss', action_loss.item())
-		self.log('train_wp_loss_loss', wp_loss.item())
-		self.log('train_speed_loss', speed_loss.item())
 		self.log('train_value_loss', value_loss.item())
 		self.log('train_feature_loss', feature_loss.item())
 		self.log('train_future_feature_loss', future_feature_loss.item())
@@ -121,7 +118,6 @@ class TCP_planner(pl.LightningModule):
 		state = torch.cat([speed, target_point, command], 1)
 		value = batch['value'].view(-1,1)
 		feature = batch['feature']
-		gt_waypoints = batch['waypoints']
 		waypoints = batch['wp']
 
 		pred = self.model(is_junction, vehicles, walkers, stops, max_speed, stop_sign, yield_sign,
@@ -130,10 +126,8 @@ class TCP_planner(pl.LightningModule):
 		dist_pred = Beta(pred['mu_branches'], pred['sigma_branches'])
 		kl_div = torch.distributions.kl_divergence(dist_sup, dist_pred)
 		action_loss = torch.mean(kl_div[:, 0]) * 0.5 + torch.mean(kl_div[:, 1]) * 0.5
-		speed_loss = F.l1_loss(pred['pred_speed'], speed) * self.config.speed_weight
-		value_loss = (F.mse_loss(pred['pred_value_traj'], value) + F.mse_loss(pred['pred_value_ctrl'], value)) * self.config.value_weight
-		feature_loss = (F.mse_loss(pred['pred_features_traj'], feature) +F.mse_loss(pred['pred_features_ctrl'], feature))* self.config.features_weight
-		wp_loss = F.l1_loss(pred['pred_wp'], gt_waypoints, reduction='none').mean()
+		value_loss = F.mse_loss(pred['pred_value_ctrl'], value) * self.config.value_weight
+		feature_loss = F.mse_loss(pred['pred_features_ctrl'], feature) * self.config.features_weight
 
 		B = batch['action_mu'].shape[0]
 		batch_steer_l1 = 0 
@@ -160,13 +154,12 @@ class TCP_planner(pl.LightningModule):
 		future_feature_loss /= self.config.pred_len
 		future_action_loss /= self.config.pred_len
 
-		val_loss = wp_loss + batch_throttle_l1+5*batch_steer_l1+batch_brake_l1
+		val_loss = batch_throttle_l1+5*batch_steer_l1+batch_brake_l1
 
 		self.log("val_action_loss", action_loss.item(), sync_dist=True)
-		self.log('val_speed_loss', speed_loss.item(), sync_dist=True)
+		# self.log('val_speed_loss', speed_loss.item(), sync_dist=True)
 		self.log('val_value_loss', value_loss.item(), sync_dist=True)
 		self.log('val_feature_loss', feature_loss.item(), sync_dist=True)
-		self.log('val_wp_loss_loss', wp_loss.item(), sync_dist=True)
 		self.log('val_future_feature_loss', future_feature_loss.item(), sync_dist=True)
 		self.log('val_future_action_loss', future_action_loss.item(), sync_dist=True)
 		self.log('val_loss', val_loss.item(), sync_dist=True)
@@ -175,7 +168,7 @@ class TCP_planner(pl.LightningModule):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 
-	parser.add_argument('--id', type=str, default='TCP_Att', help='Unique experiment identifier.')
+	parser.add_argument('--id', type=str, default='Attention1', help='Unique experiment identifier.')
 	parser.add_argument('--epochs', type=int, default=60, help='Number of train epochs.')
 	parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate.')
 	parser.add_argument('--val_every', type=int, default=3, help='Validation frequency (epochs).')
@@ -183,7 +176,7 @@ if __name__ == "__main__":
 	# parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 	parser.add_argument('--batch_size', type=int, default=8, help='Batch size')
 	
-	parser.add_argument('--logdir', type=str, default='log/TCP_Att', help='Directory to log data to.')
+	parser.add_argument('--logdir', type=str, default='log', help='Directory to log data to.')
 	parser.add_argument('--gpus', type=int, default=1, help='number of gpus')
 
 	args = parser.parse_args()
@@ -193,13 +186,7 @@ if __name__ == "__main__":
 	config = GlobalConfig()
 
 	# Data
-	# root_dir_all = "/media/ubuntu2204/A582B933E386E737/data"
 	print("train data")
-	# ['/media/ubuntu2204/A582B933E386E737/data/town01', '/media/ubuntu2204/A582B933E386E737/data/town01_addition']
-	# config.img_aug = True
-	# print(config.root_dir_all)
-	# print(config.val_data)
-	# exit()
 	train_set = CARLA_Data(root=config.root_dir_all, data_folders=config.train_data, img_aug = config.img_aug)
 	print(len(train_set))
 	

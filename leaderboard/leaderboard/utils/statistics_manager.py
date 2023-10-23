@@ -50,7 +50,14 @@ class RouteRecord():
         }
 
         self.meta = {}
-        # self.evaluate = {}
+        self.evaluate = {
+            'route_completed': 0,
+            'avg_lane_diff': 0,
+            'avg_imp': 0,
+            'avg_Jerk': 0,
+            'avg_vel': 0,
+            'min_ttc': 0
+        }
 
 
 def to_route_record(record_dict):
@@ -197,12 +204,12 @@ class StatisticsManager(object):
         route_record.scores['score_penalty'] = score_penalty
         route_record.scores['score_composed'] = max(score_route*score_penalty, 0.0)
 
-        # route_record.evaluate['route_completed'] = score_route
-        # route_record.evaluate['avg_lane_diff'] = config.agent.lane_diff_sum / config.agent.step
-        # route_record.evaluate['avg_imp'] = config.agent.imp.mean() if config.agent.imp.shape[0] else 0
-        # route_record.evaluate['avg_Jerk'] = config.agent.Jerk_sum / config.agent.step
-        # route_record.evaluate['avg_vel'] = config.agent.velocity_sum / config.agent.step
-        # route_record.evaluate['min_ttc'] = config.agent.TTC
+        route_record.evaluate['route_completed'] = score_route
+        route_record.evaluate['avg_lane_diff'] = config.agent.lane_diff_sum / config.agent.step
+        route_record.evaluate['avg_imp'] = config.agent.imp.mean() if config.agent.imp.shape[0] else 0
+        route_record.evaluate['avg_Jerk'] = config.agent.Jerk_sum / config.agent.step
+        route_record.evaluate['avg_vel'] = config.agent.velocity_sum / config.agent.step
+        route_record.evaluate['min_ttc'] = config.agent.TTC
 
 
         # update status
@@ -227,6 +234,15 @@ class StatisticsManager(object):
                 global_record.scores['score_penalty'] += route_record.scores['score_penalty']
                 global_record.scores['score_composed'] += route_record.scores['score_composed']
 
+
+                global_record.evaluate['route_completed'] += route_record.evaluate['route_completed']
+                global_record.evaluate['avg_lane_diff'] +=  route_record.evaluate['avg_lane_diff']
+                global_record.evaluate['avg_imp'] += route_record.evaluate['avg_imp']
+                global_record.evaluate['avg_Jerk'] += route_record.evaluate['avg_Jerk']
+                global_record.evaluate['avg_vel'] += route_record.evaluate['avg_vel']
+                global_record.evaluate['min_ttc'] += route_record.evaluate['min_ttc']
+
+
                 for key in global_record.infractions.keys():
                     route_length_kms = max(route_record.scores['score_route'] * route_record.meta['route_length'] / 1000.0, 0.001)
                     if isinstance(global_record.infractions[key], list):
@@ -245,6 +261,14 @@ class StatisticsManager(object):
         global_record.scores['score_route'] /= float(total_routes)
         global_record.scores['score_penalty'] /= float(total_routes)
         global_record.scores['score_composed'] /= float(total_routes)
+
+
+        global_record.evaluate['route_completed'] /= float(total_routes)
+        global_record.evaluate['avg_lane_diff'] /= float(total_routes)
+        global_record.evaluate['avg_imp'] /= float(total_routes)
+        global_record.evaluate['avg_Jerk'] /= float(total_routes) * 20
+        global_record.evaluate['avg_vel'] /= float(total_routes)
+        global_record.evaluate['min_ttc'] /= float(total_routes)
 
         return global_record
 
@@ -286,7 +310,14 @@ class StatisticsManager(object):
                           '{:.3f}'.format(stats_dict['infractions']['outside_route_lanes']),
                           '{:.3f}'.format(stats_dict['infractions']['route_dev']),
                           '{:.3f}'.format(stats_dict['infractions']['route_timeout']),
-                          '{:.3f}'.format(stats_dict['infractions']['vehicle_blocked'])
+                          '{:.3f}'.format(stats_dict['infractions']['vehicle_blocked']),
+
+                          '{:.3f}'.format(stats_dict['evaluate']['route_completed']),
+                          '{:.3f}'.format(stats_dict['evaluate']['avg_lane_diff']),
+                          '{:.3f}'.format(stats_dict['evaluate']['avg_imp']),
+                          '{:.3f}'.format(stats_dict['evaluate']['avg_Jerk']),
+                          '{:.3f}'.format(stats_dict['evaluate']['avg_vel']),
+                          '{:.3f}'.format(stats_dict['evaluate']['min_ttc'])
                           ]
 
         data['labels'] = ['Avg. driving score',
@@ -300,7 +331,13 @@ class StatisticsManager(object):
                           'Off-road infractions',
                           'Route deviations',
                           'Route timeouts',
-                          'Agent blocked'
+                          'Agent blocked',
+                          'route_completed',
+                          'avg_lane_diff',
+                          'avg_imp',
+                          'avg_Jerk',
+                          'avg_vel',
+                          'min_ttc'
                           ]
 
         entry_status = "Finished"

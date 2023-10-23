@@ -12,6 +12,11 @@ from PIL import Image
 
 from team_code.map_agent import MapAgent
 from team_code.pid_controller import PIDController
+from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from roach.obs_manager.birdview.tcp_noming import ObsManager
+from omegaconf import OmegaConf
+import math
+from roach.criteria import run_stop_sign
 
 
 # WEATHERS = {
@@ -104,17 +109,33 @@ class AutoPilot(MapAgent):
 
     def setup(self, path_to_conf_file):
         super().setup(path_to_conf_file)
+        cfg = OmegaConf.load('./roach/config/config_agent.yaml')
+        cfg = OmegaConf.to_container(cfg)
+        self.cfg = cfg
+        self.velocity_sum = 0
+        self.Jerk_sum = 0
+        self.TTC = 100000
+        self.imp = np.array([])
+        self.last_acc = 0
+        self.lane_diff_sum = 0
             
     def _init(self):
         super()._init()
 
         self._turn_controller = PIDController(K_P=1.25, K_I=0.75, K_D=0.3, n=40)
         self._speed_controller = PIDController(K_P=5.0, K_I=0.5, K_D=1.0, n=40)
+        self._ego_vehicle = CarlaDataProvider.get_ego()
+        self._map = self._world.get_map()
+        self._world = CarlaDataProvider.get_world()
 
         # for stop signs
+        self._criteria_stop = run_stop_sign.RunStopSign(self._world)
         self._target_stop_sign = None # the stop sign affecting the ego vehicle
         self._stop_completed = False # if the ego vehicle has completed the stop sign
         self._affected_by_stop = False # if the ego vehicle is influenced by a stop sign
+        self.birdview_obs_manager = ObsManager(
+            self.cfg['obs_configs']['birdview'], self._criteria_stop)
+        self.birdview_obs_manager.attach_ego_vehicle(self._ego_vehicle)
 
     def _get_angle_to(self, pos, theta, target):
         R = np.array([
@@ -169,12 +190,12 @@ class AutoPilot(MapAgent):
             self._init()
 
         # change weather for visual diversity
-        if self.step % 10 == 0:
-            index = random.choice(range(len(WEATHERS)))
-            self.weather_id = WEATHERS_IDS[index]
-            weather = WEATHERS[WEATHERS_IDS[index]]
-            print (self.weather_id, weather)
-            self._world.set_weather(weather)
+        # if self.step % 10 == 0:
+        #     index = random.choice(range(len(WEATHERS)))
+        #     self.weather_id = WEATHERS_IDS[index]
+        #     weather = WEATHERS[WEATHERS_IDS[index]]
+        #     print (self.weather_id, weather)
+        #     self._world.set_weather(weather)
 
         data = self.tick(input_data)
         gps = self._get_position(data)
@@ -191,6 +212,45 @@ class AutoPilot(MapAgent):
 
         if self.step % 10 == 0 and self.save_path is not None:
             self.save(near_node, far_node, near_command, steer, throttle, brake, target_speed, data)
+
+        #####################################evlautate#################################################################
+        surroundings_info = self.birdview_obs_manager.get_surroundings()
+        surroundings_mid_vehicles = process_actor_info(surroundings_info['mid_vehicles'], 2)
+        surroundings_back_vehicles = process_actor_info(surroundings_info['back_vehicles'], 4)
+        front_vehicle_info = surroundings_mid_vehicles[0]
+        # TTC
+        if front_vehicle_info[3] < 10 and front_vehicle_info[4] != 0:
+            speed_diff = CarlaDataProvider.get_velocity(self._ego_vehicle) - front_vehicle_info[2]
+            if speed_diff > 0:
+                TTC = front_vehicle_info[0] / speed_diff
+                self.TTC = min(self.TTC, TTC)
+        # print(TTC)
+        # velocity
+        self.velocity_sum += CarlaDataProvider.get_velocity(self._ego_vehicle)
+        # print(self.step)
+        # print(CarlaDataProvider.get_velocity(self._ego_vehicle))
+        # Jerk
+        acc = self._ego_vehicle.get_acceleration()
+        curr_acc = math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
+        self.Jerk_sum += abs(curr_acc - self.last_acc) / 0.05
+        self.last_acc = curr_acc
+        # print(self.Jerk_sum / self.step)
+        # Impact on rear vehicle
+        # print(surroundings_back_vehicles)
+        if control.brake > 0:
+            back_vehicle_info = surroundings_back_vehicles[0]
+            if back_vehicle_info[3] < 10 and back_vehicle_info[4] != 0:
+                self.imp = np.append(self.imp, back_vehicle_info[2])
+        # if self.imp.shape[0] != 0:
+        # 	print(self.imp.mean())
+        # Deviation
+        lane_center = self._map.get_waypoint(self._ego_vehicle.get_location())
+        lane_diff = lane_center.transform.location.distance(self._ego_vehicle.get_location())
+        # print(lane_diff)
+        self.lane_diff_sum += lane_diff
+    # print(self.lane_diff_sum / self.step)
+
+    ###############################################################################################################
 
         return control
 
@@ -377,3 +437,22 @@ class AutoPilot(MapAgent):
 
         return None
         
+def process_actor_info(actor_list, direction):
+    """
+	Delete farthest vehicles with a list quantity exceeding 3
+	Fill in 0 if the list quantity is less than 3
+	remove keys from dic
+	"""
+    training_list = []
+    if len(actor_list) > 3:
+        sorted_dicts = sorted(actor_list, key=lambda x: x["distance_to_ego"])
+        actor_list = sorted_dicts[:3]
+    if len(actor_list) > 0:
+        for actor in actor_list:
+            distance_to_ego = actor['distance_to_ego']
+            direction_to_ego = actor['direction_to_ego']
+            speed = actor['speed']
+            forward_vector = actor['forward_vector']
+            training_list.append([distance_to_ego, direction_to_ego, speed, forward_vector, direction])
+    training_list = training_list + [[0, 0, 0, 0, 0]] * (3 - len(training_list))
+    return training_list
